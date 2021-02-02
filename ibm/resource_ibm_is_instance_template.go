@@ -10,6 +10,7 @@
 package ibm
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/IBM/vpc-go-sdk/vpcv1"
@@ -58,7 +59,7 @@ func resourceIBMISInstanceTemplate() *schema.Resource {
 		Importer: &schema.ResourceImporter{},
 
 		CustomizeDiff: customdiff.Sequence(
-			func(diff *schema.ResourceDiff, v interface{}) error {
+			func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 				return resourceTagsCustomizeDiff(diff)
 			},
 		),
