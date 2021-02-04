@@ -52,6 +52,7 @@ var ISZoneName string
 var ISCIDR string
 var ISAddressPrefixCIDR string
 var instanceProfileName string
+var volumeProfileName string
 var ISRouteDestination string
 var ISRouteNextHop string
 var workspaceID string
@@ -322,7 +323,7 @@ func init() {
 	isImage = os.Getenv("IS_IMAGE")
 	if isImage == "" {
 		//isImage = "fc538f61-7dd6-4408-978c-c6b85b69fe76" // for classic infrastructure
-		isImage = "r006-ed3f775f-ad7e-4e37-ae62-7199b4988b00" // for next gen infrastructure
+		isImage = "r134-391339d9-3e57-497b-9f46-24aea993507b" // for next gen infrastructure
 		fmt.Println("[INFO] Set the environment variable IS_IMAGE for testing ibm_is_instance, ibm_is_floating_ip else it is set to default value 'r006-ed3f775f-ad7e-4e37-ae62-7199b4988b00'")
 	}
 
@@ -337,7 +338,13 @@ func init() {
 	if instanceProfileName == "" {
 		//instanceProfileName = "bc1-2x8" // for classic infrastructure
 		instanceProfileName = "cx2-2x4" // for next gen infrastructure
-		fmt.Println("[INFO] Set the environment variable SL_INSTANCE_PROFILE for testing ibm_is_instance resource else it is set to default value 'b-2x8'")
+		fmt.Println("[INFO] Set the environment variable SL_INSTANCE_PROFILE for testing ibm_is_instance resource else it is set to default value 'cx2-2x4'")
+	}
+
+	volumeProfileName = os.Getenv("IS_VOLUME_PROFILE")
+	if volumeProfileName == "" {
+		volumeProfileName = "general-purpose"
+		fmt.Println("[INFO] Set the environment variable IS_VOLUME_PROFILE for testing ibm_is_volume_profile else it is set to default value 'general-purpose'")
 	}
 
 	ISRouteDestination = os.Getenv("SL_ROUTE_DESTINATION")
@@ -379,8 +386,7 @@ func init() {
 
 	pi_cloud_instance_id = os.Getenv("PI_CLOUDINSTANCE_ID")
 	if pi_cloud_instance_id == "" {
-		//pi_cloud_instance_id = "d16705bd-7f1a-48c9-9e0e-1c17b71e7331"
-		pi_cloud_instance_id = "db0e5c7d-a708-454b-8a52-f0f2f2771075"
+		pi_cloud_instance_id = "fd3454a3-14d8-4eb0-b075-acf3da5cd324"
 		fmt.Println("[INFO] Set the environment variable PI_CLOUDINSTANCE_ID for testing ibm_pi_image resource else it is set to default value 'd16705bd-7f1a-48c9-9e0e-1c17b71e7331'")
 	}
 	workspaceID = os.Getenv("WORKSPACE_ID")
