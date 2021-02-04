@@ -248,6 +248,8 @@ func Provider() terraform.ResourceProvider {
 			"ibm_is_subnets":                         dataSourceIBMISSubnets(),
 			"ibm_is_security_group":                  dataSourceIBMISSecurityGroup(),
 			"ibm_is_volume":                          dataSourceIBMISVolume(),
+			"ibm_is_volume_profile":                  dataSourceIBMISVolumeProfile(),
+			"ibm_is_volume_profiles":                 dataSourceIBMISVolumeProfiles(),
 			"ibm_is_vpc":                             dataSourceIBMISVPC(),
 			"ibm_is_vpn_gateways":                    dataSourceIBMISVPNGateways(),
 			"ibm_is_vpn_gateway_connections":         dataSourceIBMISVPNGatewayConnections(),
@@ -283,7 +285,7 @@ func Provider() terraform.ResourceProvider {
 			"ibm_pi_tenant":             dataSourceIBMPITenant(),
 			"ibm_pi_network":            dataSourceIBMPINetwork(),
 			"ibm_pi_volume":             dataSourceIBMPIVolume(),
-			"ibm_pi_instance_volumes":   dataSourceIBMPIVolumes(),
+			"ibm_pi_instance_volumes":   dataSourceIBMPIInstanceVolumes(),
 			"ibm_pi_public_network":     dataSourceIBMPIPublicNetwork(),
 			"ibm_pi_images":             dataSourceIBMPIImages(),
 			"ibm_pi_instance_ip":        dataSourceIBMPIInstanceIP(),
@@ -291,6 +293,7 @@ func Provider() terraform.ResourceProvider {
 			"ibm_pi_pvm_snapshots":      dataSourceIBMPISnapshot(),
 			"ibm_pi_network_port":       dataSourceIBMPINetworkPort(),
 			"ibm_pi_cloud_instance":     dataSourceIBMPICloudInstance(),
+			"ibm_pi_catalog_images":     dataSourceIBMPICatalogImages(),
 
 			// Added for private dns zones
 

@@ -58,7 +58,7 @@ const (
 	isInstanceMemory                  = "memory"
 	isInstanceStatus                  = "status"
 
-	isEnableCleanDelete        = "clean_delete"
+	isEnableCleanDelete        = "wait_before_delete"
 	isInstanceProvisioning     = "provisioning"
 	isInstanceProvisioningDone = "done"
 	isInstanceAvailable        = "available"
@@ -1966,10 +1966,7 @@ func instanceDelete(d *schema.ResourceData, meta interface{}, id string) error {
 		return err
 	}
 
-	var cleanDelete bool
-	cleanDeleteIntf := d.Get(isEnableCleanDelete)
-	cleanDelete = cleanDeleteIntf.(bool)
-
+	cleanDelete := d.Get(isEnableCleanDelete).(bool)
 	getinsOptions := &vpcv1.GetInstanceOptions{
 		ID: &id,
 	}
@@ -1982,8 +1979,9 @@ func instanceDelete(d *schema.ResourceData, meta interface{}, id string) error {
 		return fmt.Errorf("Error Getting Instance (%s): %s\n%s", id, err, response)
 	}
 
+	bootvolid := ""
+
 	if cleanDelete {
-		log.Println("Inside clean Delete")
 		actiontype := "stop"
 		createinsactoptions := &vpcv1.CreateInstanceActionOptions{
 			InstanceID: &id,
@@ -2000,32 +1998,33 @@ func instanceDelete(d *schema.ResourceData, meta interface{}, id string) error {
 		if err != nil {
 			return err
 		}
-	}
-	listvolattoptions := &vpcv1.ListInstanceVolumeAttachmentsOptions{
-		InstanceID: &id,
-	}
-	vols, response, err := instanceC.ListInstanceVolumeAttachments(listvolattoptions)
-	if err != nil {
-		return fmt.Errorf("Error Listing volume attachments to the instance: %s\n%s", err, response)
-	}
-	bootvolid := ""
-	for _, vol := range vols.VolumeAttachments {
-		if *vol.Type == "data" {
-			delvolattoptions := &vpcv1.DeleteInstanceVolumeAttachmentOptions{
-				InstanceID: &id,
-				ID:         vol.ID,
-			}
-			_, err := instanceC.DeleteInstanceVolumeAttachment(delvolattoptions)
-			if err != nil {
-				return fmt.Errorf("Error while removing volume Attachment %q for instance %s: %q", *vol.ID, d.Id(), err)
-			}
-			_, err = isWaitForInstanceVolumeDetached(instanceC, d, d.Id(), *vol.ID)
-			if err != nil {
-				return err
-			}
+
+		listvolattoptions := &vpcv1.ListInstanceVolumeAttachmentsOptions{
+			InstanceID: &id,
 		}
-		if *vol.Type == "boot" {
-			bootvolid = *vol.Volume.ID
+		vols, response, err := instanceC.ListInstanceVolumeAttachments(listvolattoptions)
+		if err != nil {
+			return fmt.Errorf("Error Listing volume attachments to the instance: %s\n%s", err, response)
+		}
+
+		for _, vol := range vols.VolumeAttachments {
+			if *vol.Type == "data" {
+				delvolattoptions := &vpcv1.DeleteInstanceVolumeAttachmentOptions{
+					InstanceID: &id,
+					ID:         vol.ID,
+				}
+				_, err := instanceC.DeleteInstanceVolumeAttachment(delvolattoptions)
+				if err != nil {
+					return fmt.Errorf("Error while removing volume Attachment %q for instance %s: %q", *vol.ID, d.Id(), err)
+				}
+				_, err = isWaitForInstanceVolumeDetached(instanceC, d, d.Id(), *vol.ID)
+				if err != nil {
+					return err
+				}
+			}
+			if *vol.Type == "boot" {
+				bootvolid = *vol.Volume.ID
+			}
 		}
 	}
 	deleteinstanceOptions := &vpcv1.DeleteInstanceOptions{
