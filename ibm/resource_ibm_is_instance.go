@@ -58,6 +58,7 @@ const (
 	isInstanceMemory                  = "memory"
 	isInstanceStatus                  = "status"
 
+	isEnableCleanDelete        = "clean_delete"
 	isInstanceProvisioning     = "provisioning"
 	isInstanceProvisioningDone = "done"
 	isInstanceAvailable        = "available"
@@ -151,6 +152,13 @@ func resourceIBMISInstance() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Set:         resourceIBMVPCHash,
 				Description: "list of tags for the instance",
+			},
+
+			isEnableCleanDelete: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Enables stopping of instance before deleting and waits till deletion is complete",
 			},
 
 			isInstanceVolumeAttachments: {
@@ -1958,6 +1966,10 @@ func instanceDelete(d *schema.ResourceData, meta interface{}, id string) error {
 		return err
 	}
 
+	var cleanDelete bool
+	cleanDeleteIntf := d.Get(isEnableCleanDelete)
+	cleanDelete = cleanDeleteIntf.(bool)
+
 	getinsOptions := &vpcv1.GetInstanceOptions{
 		ID: &id,
 	}
@@ -1969,21 +1981,25 @@ func instanceDelete(d *schema.ResourceData, meta interface{}, id string) error {
 		}
 		return fmt.Errorf("Error Getting Instance (%s): %s\n%s", id, err, response)
 	}
-	actiontype := "stop"
-	createinsactoptions := &vpcv1.CreateInstanceActionOptions{
-		InstanceID: &id,
-		Type:       &actiontype,
-	}
-	_, response, err = instanceC.CreateInstanceAction(createinsactoptions)
-	if err != nil {
-		if response != nil && response.StatusCode == 404 {
-			return nil
+
+	if cleanDelete {
+		log.Println("Inside clean Delete")
+		actiontype := "stop"
+		createinsactoptions := &vpcv1.CreateInstanceActionOptions{
+			InstanceID: &id,
+			Type:       &actiontype,
 		}
-		return fmt.Errorf("Error Creating Instance Action: %s\n%s", err, response)
-	}
-	_, err = isWaitForInstanceActionStop(instanceC, d.Timeout(schema.TimeoutDelete), id, d)
-	if err != nil {
-		return err
+		_, response, err = instanceC.CreateInstanceAction(createinsactoptions)
+		if err != nil {
+			if response != nil && response.StatusCode == 404 {
+				return nil
+			}
+			return fmt.Errorf("Error Creating Instance Action: %s\n%s", err, response)
+		}
+		_, err = isWaitForInstanceActionStop(instanceC, d.Timeout(schema.TimeoutDelete), id, d)
+		if err != nil {
+			return err
+		}
 	}
 	listvolattoptions := &vpcv1.ListInstanceVolumeAttachmentsOptions{
 		InstanceID: &id,
@@ -2019,14 +2035,17 @@ func instanceDelete(d *schema.ResourceData, meta interface{}, id string) error {
 	if err != nil {
 		return err
 	}
-	_, err = isWaitForInstanceDelete(instanceC, d, d.Id())
-	if err != nil {
-		return err
-	}
-	if _, ok := d.GetOk(isInstanceBootVolume); ok {
-		_, err = isWaitForVolumeDeleted(instanceC, bootvolid, d.Timeout(schema.TimeoutDelete))
+	if cleanDelete {
+
+		_, err = isWaitForInstanceDelete(instanceC, d, d.Id())
 		if err != nil {
 			return err
+		}
+		if _, ok := d.GetOk(isInstanceBootVolume); ok {
+			_, err = isWaitForVolumeDeleted(instanceC, bootvolid, d.Timeout(schema.TimeoutDelete))
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

@@ -365,11 +365,11 @@ func vpngwconCreate(d *schema.ResourceData, meta interface{}, name, gatewayID, p
 
 	if _, ok := d.GetOk(isVPNGatewayConnectionLocalCIDRS); ok {
 		localCidrs := expandStringList((d.Get(isVPNGatewayConnectionLocalCIDRS).(*schema.Set)).List())
-		vpnGatewayConnectionPrototypeModel.LocalCIDRs = localCidrs
+		vpnGatewayConnectionPrototypeModel.LocalCidrs = localCidrs
 	}
 	if _, ok := d.GetOk(isVPNGatewayConnectionPeerCIDRS); ok {
 		peerCidrs := expandStringList((d.Get(isVPNGatewayConnectionPeerCIDRS).(*schema.Set)).List())
-		vpnGatewayConnectionPrototypeModel.PeerCIDRs = peerCidrs
+		vpnGatewayConnectionPrototypeModel.PeerCidrs = peerCidrs
 	}
 
 	var ikePolicyIdentity, ipsecPolicyIdentity string
@@ -500,11 +500,11 @@ func vpngwconGet(d *schema.ResourceData, meta interface{}, gID, gConnID string) 
 	d.Set(isVPNGatewayConnectionPeerAddress, *vpnGatewayConnection.PeerAddress)
 	d.Set(isVPNGatewayConnectionPreSharedKey, *vpnGatewayConnection.Psk)
 
-	if vpnGatewayConnection.LocalCIDRs != nil {
-		d.Set(isVPNGatewayConnectionLocalCIDRS, flattenStringList(vpnGatewayConnection.LocalCIDRs))
+	if vpnGatewayConnection.LocalCidrs != nil {
+		d.Set(isVPNGatewayConnectionLocalCIDRS, flattenStringList(vpnGatewayConnection.LocalCidrs))
 	}
-	if vpnGatewayConnection.PeerCIDRs != nil {
-		d.Set(isVPNGatewayConnectionPeerCIDRS, flattenStringList(vpnGatewayConnection.PeerCIDRs))
+	if vpnGatewayConnection.PeerCidrs != nil {
+		d.Set(isVPNGatewayConnectionPeerCIDRS, flattenStringList(vpnGatewayConnection.PeerCidrs))
 	}
 	if vpnGatewayConnection.IkePolicy != nil {
 		d.Set(isVPNGatewayConnectionIKEPolicy, *vpnGatewayConnection.IkePolicy.ID)

@@ -1026,14 +1026,17 @@ func (c *Config) ClientSession() (interface{}, error) {
 	session.vpcClassicAPI = vpcclassicclient
 
 	vpcurl := fmt.Sprintf("https://%s.iaas.cloud.ibm.com/v1", c.Region)
+	apiversion := "2021-01-26"
 	vpcoptions := &vpc.VpcV1Options{
 		URL:           envFallBack([]string{"IBMCLOUD_IS_NG_API_ENDPOINT"}, vpcurl),
 		Authenticator: authenticator,
+		Version:       &apiversion,
 	}
 	vpcclient, err := vpc.NewVpcV1(vpcoptions)
 	if err != nil {
 		session.vpcErr = fmt.Errorf("Error occured while configuring vpc service: %q", err)
 	}
+	vpcclient.Service.EnableRetries(c.RetryCount, c.RetryDelay)
 	session.vpcAPI = vpcclient
 
 	//cosconfigurl := fmt.Sprintf("https://%s.iaas.cloud.ibm.com/v1", c.Region)
