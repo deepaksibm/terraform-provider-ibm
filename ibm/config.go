@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	gohttp "net/http"
 	"os"
 	"strings"
@@ -76,6 +77,7 @@ import (
 	"github.com/IBM-Cloud/bluemix-go/api/schematics"
 	"github.com/IBM-Cloud/bluemix-go/api/usermanagement/usermanagementv2"
 	"github.com/IBM-Cloud/bluemix-go/authentication"
+	"github.com/IBM-Cloud/bluemix-go/bmxerror"
 	"github.com/IBM-Cloud/bluemix-go/http"
 	"github.com/IBM-Cloud/bluemix-go/rest"
 	bxsession "github.com/IBM-Cloud/bluemix-go/session"
@@ -902,14 +904,30 @@ func (c *Config) ClientSession() (interface{}, error) {
 	if sess.BluemixSession.Config.BluemixAPIKey != "" {
 		err = authenticateAPIKey(sess.BluemixSession)
 		if err != nil {
-			session.bmxUserFetchErr = fmt.Errorf("Error occured while fetching auth key for account user details: %q", err)
-			session.functionConfigErr = fmt.Errorf("Error occured while fetching auth key for function: %q", err)
-			session.powerConfigErr = fmt.Errorf("Error occured while fetching the auth key for power iaas: %q", err)
-			session.ibmpiConfigErr = fmt.Errorf("Error occured while fetching the auth key for power iaas: %q", err)
+			for count := c.RetryCount; count >= 0; count-- {
+				if err == nil || !isRetryable(err) {
+					break
+				}
+				err = authenticateAPIKey(sess.BluemixSession)
+			}
+			if err != nil {
+				session.bmxUserFetchErr = fmt.Errorf("Error occured while fetching auth key for account user details: %q", err)
+				session.functionConfigErr = fmt.Errorf("Error occured while fetching auth key for function: %q", err)
+				session.powerConfigErr = fmt.Errorf("Error occured while fetching the auth key for power iaas: %q", err)
+				session.ibmpiConfigErr = fmt.Errorf("Error occured while fetching the auth key for power iaas: %q", err)
+			}
 		}
 		err = authenticateCF(sess.BluemixSession)
 		if err != nil {
-			session.functionConfigErr = fmt.Errorf("Error occured while fetching auth key for function: %q", err)
+			for count := c.RetryCount; count >= 0; count-- {
+				if err == nil || !isRetryable(err) {
+					break
+				}
+				err = authenticateCF(sess.BluemixSession)
+			}
+			if err != nil {
+				session.functionConfigErr = fmt.Errorf("Error occured while fetching auth key for function: %q", err)
+			}
 		}
 	}
 
@@ -1761,4 +1779,27 @@ func DefaultTransport() gohttp.RoundTripper {
 		},
 	}
 	return transport
+}
+
+func isRetryable(err error) bool {
+	if bmErr, ok := err.(bmxerror.RequestFailure); ok {
+		switch bmErr.StatusCode() {
+		case 408, 504, 599, 429, 500, 502, 520, 503:
+			return true
+		}
+	}
+
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		return true
+	}
+
+	if netErr, ok := err.(*net.OpError); ok && netErr.Timeout() {
+		return true
+	}
+
+	if netErr, ok := err.(net.UnknownNetworkError); ok && netErr.Timeout() {
+		return true
+	}
+
+	return false
 }
