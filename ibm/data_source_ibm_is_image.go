@@ -48,6 +48,11 @@ func dataSourceIBMISImage() *schema.Resource {
 				Computed:    true,
 				Description: "The CRN for this image",
 			},
+			"checksum": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The SHA256 checksum for this image",
+			},
 			isImageEncryptionKey: {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -160,6 +165,10 @@ func imageGet(d *schema.ResourceData, meta interface{}, name, visibility string)
 			d.Set("os", *image.OperatingSystem.Name)
 			d.Set("architecture", *image.OperatingSystem.Architecture)
 			d.Set("crn", *image.CRN)
+			if image.File != nil && image.File.Checksums != nil && image.File.Checksums.Sha256 != nil {
+				d.Set("checksum", *image.File)
+			}
+
 			if image.Encryption != nil {
 				d.Set("encryption", *image.Encryption)
 			}

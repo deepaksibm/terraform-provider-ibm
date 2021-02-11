@@ -154,6 +154,12 @@ func resourceIBMISImage() *schema.Resource {
 				Description: "The crn of the resource",
 			},
 
+			ResourceCheckSum: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The SHA256 checksum of the resource",
+			},
+
 			ResourceStatus: {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -608,6 +614,9 @@ func imgGet(d *schema.ResourceData, meta interface{}, id string) error {
 	d.Set(ResourceName, *image.Name)
 	d.Set(ResourceStatus, *image.Status)
 	d.Set(ResourceCRN, *image.CRN)
+	if image.File != nil && image.File.Checksums != nil && image.File.Checksums.Sha256 != nil {
+		d.Set(ResourceCheckSum, *image.File.Checksums.Sha256)
+	}
 	if image.ResourceGroup != nil {
 		d.Set(isImageResourceGroup, *image.ResourceGroup.ID)
 	}
