@@ -246,14 +246,14 @@ func init() {
 
 	lbaasDatacenter = os.Getenv("IBM_LBAAS_DATACENTER")
 	if lbaasDatacenter == "" {
-		lbaasDatacenter = "wdc04"
-		fmt.Println("[WARN] Set the environment variable IBM_LBAAS_DATACENTER for testing ibm_lbaas resource else it is set to default value 'wdc04'")
+		lbaasDatacenter = "dal13"
+		fmt.Println("[WARN] Set the environment variable IBM_LBAAS_DATACENTER for testing ibm_lbaas resource else it is set to default value 'dal13'")
 	}
 
 	lbaasSubnetId = os.Getenv("IBM_LBAAS_SUBNETID")
 	if lbaasSubnetId == "" {
-		lbaasSubnetId = "1511875"
-		fmt.Println("[WARN] Set the environment variable IBM_LBAAS_SUBNETID for testing ibm_lbaas resource else it is set to default value '1511875'")
+		lbaasSubnetId = "2144241"
+		fmt.Println("[WARN] Set the environment variable IBM_LBAAS_SUBNETID for testing ibm_lbaas resource else it is set to default value '2144241'")
 	}
 
 	dedicatedHostName = os.Getenv("IBM_DEDICATED_HOSTNAME")
