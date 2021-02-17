@@ -1491,7 +1491,7 @@ func testComputeInstanceWithRetry(hostname, domain string) (config string) {
 		cores             = 1
 		memory            = 1024
 		local_disk        = false
-		os_reference_code = "DEBIAN_7_64"
+		os_reference_code = "DEBIAN_9_64"
 		disks             = [25]
 	  
 		datacenter_choice = [

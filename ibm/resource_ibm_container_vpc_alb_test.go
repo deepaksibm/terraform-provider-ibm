@@ -111,11 +111,11 @@ func testAccCheckIBMVpcContainerALB_basic(enable bool, flavor string, worker_cou
 	  }
 	  
 	  data "ibm_resource_group" "resource_group" {
-		name = "Default"
+		name = "default"
 	  }
 	  
 	  resource "ibm_container_vpc_cluster" "cluster" {
-		name              = "terraform_cluster${var.name1}"
+		name              = "terraform-cluster${var.name1}"
 		vpc_id            = "${ibm_is_vpc.vpc1.id}"
 		flavor            = "%s"
 		worker_count      = "%d"

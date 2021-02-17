@@ -152,11 +152,11 @@ func testAccCheckIBMVpcContainerWorkerPool_basic(flavor string, worker_count, na
 	}
 	
 	data "ibm_resource_group" "resource_group" {
-	  name = "Default"
+	  name = "default"
 	}
 	
 	resource "ibm_container_vpc_cluster" "cluster" {
-	  name              = "terraform_cluster${var.name1}"
+	  name              = "terraform-cluster${var.name1}"
 	  vpc_id            = "${ibm_is_vpc.vpc1.id}"
 	  flavor            = "%s"
 	  worker_count      = "%d"
@@ -170,7 +170,7 @@ func testAccCheckIBMVpcContainerWorkerPool_basic(flavor string, worker_count, na
 	
 	resource "ibm_container_vpc_worker_pool" "test_pool" {
 	  cluster           = "${ibm_container_vpc_cluster.cluster.id}"
-	  worker_pool_name  = "terraform_workerpool${var.name1}"
+	  worker_pool_name  = "terraform-workerpool${var.name1}"
 	  flavor            = "%s"
 	  vpc_id            = "${ibm_is_vpc.vpc1.id}"
 	  worker_count      = "%d"
@@ -224,11 +224,11 @@ func testAccCheckIBMVpcContainerWorkerPool_update(flavor string, worker_count, n
 	}
 	
 	data "ibm_resource_group" "resource_group" {
-	  name = "Default"
+	  name = "default"
 	}
 	
 	resource "ibm_container_vpc_cluster" "cluster" {
-	  name              = "terraform_cluster${var.name1}"
+	  name              = "terraform-cluster${var.name1}"
 	  vpc_id            = "${ibm_is_vpc.vpc1.id}"
 	  flavor            = "%s"
 	  worker_count      = "%d"
@@ -242,7 +242,7 @@ func testAccCheckIBMVpcContainerWorkerPool_update(flavor string, worker_count, n
 	
 	resource "ibm_container_vpc_worker_pool" "test_pool" {
 	  cluster           = "${ibm_container_vpc_cluster.cluster.id}"
-	  worker_pool_name  = "terraform_workerpool${var.name1}"
+	  worker_pool_name  = "terraform-workerpool${var.name1}"
 	  flavor            = "%s"
 	  vpc_id            = "${ibm_is_vpc.vpc1.id}"
 	  worker_count      = "%d"

@@ -25,11 +25,11 @@ import (
 )
 
 func TestAccIBMContainerVpcCluster_basic(t *testing.T) {
-	clusterName := fmt.Sprintf("terraform_%d", acctest.RandIntRange(10, 100))
-	clusterNamegen2 := fmt.Sprintf("terraform_%d", acctest.RandIntRange(10, 100))
+	clusterName := fmt.Sprintf("terraform-%d", acctest.RandIntRange(10, 100))
+	clusterNamegen2 := fmt.Sprintf("terraform-%d", acctest.RandIntRange(10, 100))
 	randint := acctest.RandIntRange(10, 100)
-	vpc := fmt.Sprintf("terraform_vpc-%d", randint)
-	subnet := fmt.Sprintf("terraform_subnet-%d", randint)
+	vpc := fmt.Sprintf("terraform-vpc-%d", randint)
+	subnet := fmt.Sprintf("terraform-subnet-%d", randint)
 	flavor := "c2.2x4"
 	zone := "us-south"
 	workerCount := "1"
@@ -102,7 +102,7 @@ func TestAccIBMContainerVpcCluster_basic(t *testing.T) {
 }
 
 func TestAccIBMContainerVpcCluster_importBasic(t *testing.T) {
-	clusterName := fmt.Sprintf("terraform_%d", acctest.RandIntRange(10, 100))
+	clusterName := fmt.Sprintf("terraform-%d", acctest.RandIntRange(10, 100))
 	randint := acctest.RandIntRange(10, 100)
 	vpc := fmt.Sprintf("vpc-%d", randint)
 	subnet := fmt.Sprintf("subnet-%d", randint)
@@ -162,7 +162,7 @@ func TestAccIBMContainerVpcCluster_importBasic(t *testing.T) {
 }
 
 func TestAccIBMContainerVpcCluster_KmsEnable(t *testing.T) {
-	clusterName := fmt.Sprintf("terraform_%d", acctest.RandIntRange(10, 100))
+	clusterName := fmt.Sprintf("terraform-%d", acctest.RandIntRange(10, 100))
 	kmsInstanceName := fmt.Sprintf("kmsInstance_%d", acctest.RandIntRange(10, 100))
 	rootKeyName := fmt.Sprintf("rootKey_%d", acctest.RandIntRange(10, 100))
 	resource.Test(t, resource.TestCase{

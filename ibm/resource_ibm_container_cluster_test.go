@@ -15,10 +15,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IBM-Cloud/bluemix-go/api/container/containerv1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/IBM-Cloud/bluemix-go/api/container/containerv1"
 )
 
 func TestAccIBMContainerCluster_basic(t *testing.T) {
@@ -479,7 +480,7 @@ func testAccCheckIBMContainerClusterKmsEnable(clusterName, kmsInstanceName, root
 	return fmt.Sprintf(`
 	
 	data "ibm_resource_group" "testacc_ds_resource_group" {
-		name = "Default"
+		name = "default"
 	}
 	
 	resource "ibm_resource_instance" "kms_instance1" {

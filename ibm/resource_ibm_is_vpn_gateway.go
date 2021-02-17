@@ -139,7 +139,11 @@ func resourceIBMISVPNGateway() *schema.Resource {
 				Computed:    true,
 				Description: "The resource group name in which resource is provisioned",
 			},
-
+			isVPNGatewayCreatedAt: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Created Time of the VPN Gateway",
+			},
 			isVPNGatewayMode: {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -526,7 +530,7 @@ func vpngwGet(d *schema.ResourceData, meta interface{}, id string) error {
 		d.Set(isVPNGatewayMembers, vpcMembersIpsList)
 	}
 	if vpnGateway.CreatedAt != nil {
-		d.Set(isVPNGatewayCreatedAt, vpnGateway.CreatedAt.String())
+		d.Set(isVPNGatewayCreatedAt, (vpnGateway.CreatedAt).String())
 	}
 	return nil
 }

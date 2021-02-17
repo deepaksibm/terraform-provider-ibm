@@ -14,10 +14,11 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/IBM-Cloud/bluemix-go/api/container/containerv1"
-	"github.com/IBM-Cloud/bluemix-go/bmxerror"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	v1 "github.com/IBM-Cloud/bluemix-go/api/container/containerv1"
+	"github.com/IBM-Cloud/bluemix-go/bmxerror"
 )
 
 func resourceIBMContainerWorkerPoolZoneAttachment() *schema.Resource {
@@ -202,7 +203,6 @@ func resourceIBMContainerWorkerPoolZoneAttachmentRead(d *schema.ResourceData, me
 			d.Set("zone", zone.ID)
 			d.Set("cluster", cluster)
 			d.Set("worker_pool", workerPool)
-			d.Set("region", workerPoolRes.Region)
 
 			break
 		}

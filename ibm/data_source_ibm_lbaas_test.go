@@ -73,8 +73,8 @@ resource "ibm_lbaas" "lbaas" {
     backend_protocol = "HTTP"
     backend_port = 80
 
-    "load_balancing_method" = "round_robin"
-  }]
+    load_balancing_method = "round_robin"
+  }
   use_system_public_ip_pool = false
 }
 resource "ibm_lbaas_server_instance_attachment" "lbaas_member" {

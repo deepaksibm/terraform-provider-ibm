@@ -18,10 +18,10 @@ import (
 )
 
 func TestAccIBMContainerVPCClusterDataSource_basic(t *testing.T) {
-	clusterName := fmt.Sprintf("terraform_%d", acctest.RandIntRange(10, 100))
+	clusterName := fmt.Sprintf("terraform-%d", acctest.RandIntRange(10, 100))
 	randint := acctest.RandIntRange(10, 100)
-	vpc := fmt.Sprintf("terraform_vpc-%d", randint)
-	subnet := fmt.Sprintf("terraform_subnet-%d", randint)
+	vpc := fmt.Sprintf("terraform-vpc-%d", randint)
+	subnet := fmt.Sprintf("terraform-subnet-%d", randint)
 	flavor := "c2.2x4"
 	zone := "us-south"
 	workerCount := "1"
