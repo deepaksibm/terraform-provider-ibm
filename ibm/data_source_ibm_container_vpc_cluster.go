@@ -163,7 +163,16 @@ func dataSourceIBMContainerVPCCluster() *schema.Resource {
 					},
 				},
 			},
-
+			"service_subnet": {
+				Type:        schema.TypeString,
+				Description: "Custom subnet CIDR to provide private IP addresses for services",
+				Computed:    true,
+			},
+			"pod_subnet": {
+				Type:        schema.TypeString,
+				Description: "Custom subnet CIDR to provide private IP addresses for pods",
+				Computed:    true,
+			},
 			"ingress_hostname": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -173,7 +182,6 @@ func dataSourceIBMContainerVPCCluster() *schema.Resource {
 				Computed:  true,
 				Sensitive: true,
 			},
-
 			"resource_group_id": {
 				Type:        schema.TypeString,
 				Optional:    true,

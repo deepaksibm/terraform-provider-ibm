@@ -14,10 +14,11 @@ import (
 	"strings"
 	"testing"
 
-	v1 "github.com/IBM-Cloud/bluemix-go/api/container/containerv1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	v1 "github.com/IBM-Cloud/bluemix-go/api/container/containerv1"
 )
 
 func TestAccIBMContainerALB_Basic(t *testing.T) {
@@ -28,14 +29,14 @@ func TestAccIBMContainerALB_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIBMContainerALBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckIBMContainerALBBasic(clusterName, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"ibm_container_alb.alb", "enable", "true"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckIBMContainerALBBasic(clusterName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -78,13 +79,15 @@ func testAccCheckIBMContainerALBBasic(clusterName string, enable bool) string {
 resource "ibm_container_cluster" "testacc_cluster" {
   name       = "%s"
   datacenter = "%s"
-
   default_pool_size = 1
-
   machine_type    = "%s"
   hardware        = "shared"
   public_vlan_id  = "%s"
   private_vlan_id = "%s"
+  timeouts {
+    create = "720m"
+	update = "720m"
+  }
 }
 
 resource "ibm_container_alb" "alb" {
