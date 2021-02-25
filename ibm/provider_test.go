@@ -370,32 +370,38 @@ func init() {
 	// Added for Power Colo Testing
 	pi_image = os.Getenv("PI_IMAGE")
 	if pi_image == "" {
-		pi_image = "7200-03-03"
+		pi_image = "c93dc4c6-e85a-4da2-9ea6-f24576256122"
 		fmt.Println("[INFO] Set the environment variable PI_IMAGE for testing ibm_pi_image resource else it is set to default value '7200-03-03'")
 	}
 
 	pi_key_name = os.Getenv("PI_KEY_NAME")
 	if pi_key_name == "" {
-		pi_key_name = "brampoc"
-		fmt.Println("[INFO] Set the environment variable PI_KEY_NAME for testing ibm_pi_key_name resource else it is set to default value 'brampoc'")
+		pi_key_name = "terraform-test-power"
+		fmt.Println("[INFO] Set the environment variable PI_KEY_NAME for testing ibm_pi_key_name resource else it is set to default value 'terraform-test-power'")
 	}
 
 	pi_network_name = os.Getenv("PI_NETWORK_NAME")
 	if pi_network_name == "" {
-		pi_network_name = "APP"
-		fmt.Println("[INFO] Set the environment variable PI_NETWORK_NAME for testing ibm_pi_network_name resource else it is set to default value 'APP'")
+		pi_network_name = "terraform-test-power"
+		fmt.Println("[INFO] Set the environment variable PI_NETWORK_NAME for testing ibm_pi_network_name resource else it is set to default value 'terraform-test-power'")
 	}
 
 	pi_volume_name = os.Getenv("PI_VOLUME_NAME")
 	if pi_volume_name == "" {
-		pi_volume_name = "vg9"
-		fmt.Println("[INFO] Set the environment variable PI_VOLUME_NAME for testing ibm_pi_network_name resource else it is set to default value 'vg9'")
+		pi_volume_name = "terraform-test-power"
+		fmt.Println("[INFO] Set the environment variable PI_VOLUME_NAME for testing ibm_pi_network_name resource else it is set to default value 'terraform-test-power'")
 	}
 
 	pi_cloud_instance_id = os.Getenv("PI_CLOUDINSTANCE_ID")
 	if pi_cloud_instance_id == "" {
 		pi_cloud_instance_id = "fd3454a3-14d8-4eb0-b075-acf3da5cd324"
 		fmt.Println("[INFO] Set the environment variable PI_CLOUDINSTANCE_ID for testing ibm_pi_image resource else it is set to default value 'd16705bd-7f1a-48c9-9e0e-1c17b71e7331'")
+	}
+
+	pi_instance_name = os.Getenv("PI_PVM_INSTANCE_NAME")
+	if pi_instance_name == "" {
+		pi_instance_name = "terraform-test-power"
+		fmt.Println("[INFO] Set the environment variable PI_PVM_INSTANCE_ID for testing pi_instance_name resource else it is set to default value 'terraform-test-power'")
 	}
 	workspaceID = os.Getenv("WORKSPACE_ID")
 	if workspaceID == "" {
