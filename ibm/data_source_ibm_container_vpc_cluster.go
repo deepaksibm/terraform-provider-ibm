@@ -188,7 +188,10 @@ func dataSourceIBMContainerVPCCluster() *schema.Resource {
 				Description: "ID of the resource group.",
 				Computed:    true,
 			},
-
+			"state": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"public_service_endpoint": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -236,7 +239,7 @@ func dataSourceIBMContainerVPCCluster() *schema.Resource {
 			},
 
 			"tags": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},

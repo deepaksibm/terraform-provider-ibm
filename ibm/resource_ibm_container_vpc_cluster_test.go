@@ -48,7 +48,7 @@ func TestAccIBMContainerVpcClusterBasic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"ibm_container_vpc_cluster.cluster", "worker_labels.%", "3"),
 					resource.TestCheckResourceAttr(
-						"ibm_container_vpc_cluster.testacc_cluster", "kms_config.#", "1"),
+						"ibm_container_vpc_cluster.cluster", "kms_config.#", "1"),
 				),
 			},
 			{
@@ -66,7 +66,7 @@ func TestAccIBMContainerVpcClusterBasic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"ibm_container_vpc_cluster.cluster", "worker_labels.%", "2"),
 					resource.TestCheckResourceAttr(
-						"ibm_container_vpc_cluster.testacc_cluster", "kms_config.#", "1"),
+						"ibm_container_vpc_cluster.cluster", "kms_config.#", "1"),
 				),
 			},
 			{
