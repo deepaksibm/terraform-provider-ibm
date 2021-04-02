@@ -251,8 +251,8 @@ func dataSourcePlacementGroupCollectionPlacementGroupsToMap(placementGroupsItem 
 	if placementGroupsItem.CreatedAt != nil {
 		placementGroupsMap["created_at"] = placementGroupsItem.CreatedAt.String()
 	}
-	if placementGroupsItem.Crn != nil {
-		placementGroupsMap["crn"] = placementGroupsItem.Crn
+	if placementGroupsItem.CRN != nil {
+		placementGroupsMap["crn"] = placementGroupsItem.CRN
 	}
 	if placementGroupsItem.Href != nil {
 		placementGroupsMap["href"] = placementGroupsItem.Href

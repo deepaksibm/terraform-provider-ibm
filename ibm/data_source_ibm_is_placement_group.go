@@ -121,7 +121,7 @@ func dataSourceIbmIsPlacementGroupRead(context context.Context, d *schema.Resour
 	if err = d.Set("created_at", placementGroup.CreatedAt); err != nil {
 		return diag.FromErr(fmt.Errorf("Error setting created_at: %s", err))
 	}
-	if err = d.Set("crn", placementGroup.Crn); err != nil {
+	if err = d.Set("crn", placementGroup.CRN); err != nil {
 		return diag.FromErr(fmt.Errorf("Error setting crn: %s", err))
 	}
 	if err = d.Set("href", placementGroup.Href); err != nil {

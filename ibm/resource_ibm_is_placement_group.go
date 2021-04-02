@@ -50,19 +50,9 @@ func resourceIbmIsPlacementGroup() *schema.Resource {
 				Description:  "The unique user-defined name for this placement group. If unspecified, the name will be a hyphenated list of randomly-selected words.",
 			},
 			"resource_group": &schema.Schema{
-				Type:        schema.TypeList,
-				MaxItems:    1,
+				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The resource group to use. If unspecified, the account's [default resourcegroup](https://cloud.ibm.com/apidocs/resource-manager#introduction) is used.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The unique identifier for this resource group.",
-						},
-					},
-				},
+				Description: "The unique identifier of the resource group to use. If unspecified, the account's [default resourcegroup](https://cloud.ibm.com/apidocs/resource-manager#introduction) is used.",
 			},
 			"created_at": &schema.Schema{
 				Type:        schema.TypeString,
@@ -130,9 +120,12 @@ func resourceIbmIsPlacementGroupCreate(context context.Context, d *schema.Resour
 	if _, ok := d.GetOk("name"); ok {
 		createPlacementGroupOptions.SetName(d.Get("name").(string))
 	}
-	if _, ok := d.GetOk("resource_group"); ok {
-		resourceGroup := resourceIbmIsPlacementGroupMapToResourceGroupIdentity(d.Get("resource_group.0").(map[string]interface{}))
-		createPlacementGroupOptions.SetResourceGroup(&resourceGroup)
+	if resourceGroupIntf, ok := d.GetOk("resource_group"); ok {
+		resourceGroup := resourceGroupIntf.(string)
+		resourceGroupIdentity := &vpcv1.ResourceGroupIdentity{
+			ID: &resourceGroup,
+		}
+		createPlacementGroupOptions.SetResourceGroup(resourceGroupIdentity)
 	}
 
 	placementGroup, response, err := vpcClient.CreatePlacementGroupWithContext(context, createPlacementGroupOptions)
@@ -191,15 +184,14 @@ func resourceIbmIsPlacementGroupRead(context context.Context, d *schema.Resource
 		return diag.FromErr(fmt.Errorf("Error setting name: %s", err))
 	}
 	if placementGroup.ResourceGroup != nil {
-		resourceGroupMap := resourceIbmIsPlacementGroupResourceGroupIdentityToMap(*placementGroup.ResourceGroup)
-		if err = d.Set("resource_group", []map[string]interface{}{resourceGroupMap}); err != nil {
+		if err = d.Set("resource_group", *placementGroup.ResourceGroup.ID); err != nil {
 			return diag.FromErr(fmt.Errorf("Error setting resource_group: %s", err))
 		}
 	}
 	if err = d.Set("created_at", placementGroup.CreatedAt.String()); err != nil {
 		return diag.FromErr(fmt.Errorf("Error setting created_at: %s", err))
 	}
-	if err = d.Set("crn", placementGroup.Crn); err != nil {
+	if err = d.Set("crn", placementGroup.CRN); err != nil {
 		return diag.FromErr(fmt.Errorf("Error setting crn: %s", err))
 	}
 	if err = d.Set("href", placementGroup.Href); err != nil {
@@ -243,21 +235,19 @@ func resourceIbmIsPlacementGroupUpdate(context context.Context, d *schema.Resour
 
 	hasChange := false
 
-	if d.HasChange("strategy") {
-		updatePlacementGroupOptions.SetStrategy(d.Get("strategy").(string))
-		hasChange = true
-	}
+	placementGroupPatchModel := &vpcv1.PlacementGroupPatch{}
 	if d.HasChange("name") {
-		updatePlacementGroupOptions.SetName(d.Get("name").(string))
+		plName := d.Get("name").(string)
+		placementGroupPatchModel.Name = &plName
 		hasChange = true
 	}
-	if d.HasChange("resource_group") {
-		resourceGroup := resourceIbmIsPlacementGroupMapToResourceGroupIdentity(d.Get("resource_group.0").(map[string]interface{}))
-		updatePlacementGroupOptions.SetResourceGroup(&resourceGroup)
-		hasChange = true
-	}
-
 	if hasChange {
+		placementGroupPatch, err := placementGroupPatchModel.AsPatch()
+		if err != nil {
+			log.Printf("[DEBUG] Error calling AsPatch for PlacementGroupPatch %s", err)
+			return diag.FromErr(err)
+		}
+		updatePlacementGroupOptions.SetPlacementGroupPatch(placementGroupPatch)
 		_, response, err := vpcClient.UpdatePlacementGroupWithContext(context, updatePlacementGroupOptions)
 		if err != nil {
 			log.Printf("[DEBUG] UpdatePlacementGroupWithContext failed %s\n%s", err, response)
