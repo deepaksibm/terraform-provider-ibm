@@ -35,7 +35,6 @@ func dataSourceIbmIsPlacementGroups() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"first": &schema.Schema{
 				Type:        schema.TypeList,
-				MaxItems:    1,
 				Computed:    true,
 				Description: "A link to the first page of resources.",
 				Elem: &schema.Resource{
@@ -55,7 +54,6 @@ func dataSourceIbmIsPlacementGroups() *schema.Resource {
 			},
 			"next": &schema.Schema{
 				Type:        schema.TypeList,
-				MaxItems:    1,
 				Computed:    true,
 				Description: "A link to the next page of resources. This property is present for all pagesexcept the last page.",
 				Elem: &schema.Resource{

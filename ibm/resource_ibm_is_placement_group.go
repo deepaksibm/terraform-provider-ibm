@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/IBM/go-sdk-core/v5/core"
 	"github.com/IBM/vpc-go-sdk/vpcv1"
 )
 
@@ -37,44 +36,45 @@ func resourceIbmIsPlacementGroup() *schema.Resource {
 		Importer:      &schema.ResourceImporter{},
 
 		Schema: map[string]*schema.Schema{
-			"strategy": &schema.Schema{
+			"strategy": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: InvokeValidator("ibm_is_placement_group", "strategy"),
 				Description:  "The strategy for this placement group- `host_spread`: place on different compute hosts- `power_spread`: place on compute hosts that use different power sourcesThe enumerated values for this property may expand in the future. When processing this property, check for and log unknown values. Optionally halt processing and surface the error, or bypass the placement group on which the unexpected strategy was encountered.",
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: InvokeValidator("ibm_is_placement_group", "name"),
 				Description:  "The unique user-defined name for this placement group. If unspecified, the name will be a hyphenated list of randomly-selected words.",
 			},
-			"resource_group": &schema.Schema{
+			"resource_group": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The unique identifier of the resource group to use. If unspecified, the account's [default resourcegroup](https://cloud.ibm.com/apidocs/resource-manager#introduction) is used.",
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The date and time that the placement group was created.",
 			},
-			"crn": &schema.Schema{
+			"crn": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The CRN for this placement group.",
 			},
-			"href": &schema.Schema{
+			"href": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The URL for this placement group.",
 			},
-			"lifecycle_state": &schema.Schema{
+			"lifecycle_state": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The lifecycle state of the placement group.",
 			},
-			"resource_type": &schema.Schema{
+			"resource_type": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The resource type.",
@@ -98,7 +98,7 @@ func resourceIbmIsPlacementGroupValidator() *ResourceValidator {
 			ValidateFunctionIdentifier: ValidateRegexpLen,
 			Type:                       TypeString,
 			Optional:                   true,
-			Regexp:                     `^([a-z]|[a-z][-a-z0-9]*[a-z0-9]|[0-9][-a-z0-9]*([a-z]|[-a-z][-a-z0-9]*[a-z0-9]))$`,
+			Regexp:                     `^([a-z]|[a-z][-a-z0-9]*[a-z0-9])$`,
 			MinValueLength:             1,
 			MaxValueLength:             63,
 		},
@@ -117,8 +117,8 @@ func resourceIbmIsPlacementGroupCreate(context context.Context, d *schema.Resour
 	createPlacementGroupOptions := &vpcv1.CreatePlacementGroupOptions{}
 
 	createPlacementGroupOptions.SetStrategy(d.Get("strategy").(string))
-	if _, ok := d.GetOk("name"); ok {
-		createPlacementGroupOptions.SetName(d.Get("name").(string))
+	if pgnameIntf, ok := d.GetOk("name"); ok {
+		createPlacementGroupOptions.SetName(pgnameIntf.(string))
 	}
 	if resourceGroupIntf, ok := d.GetOk("resource_group"); ok {
 		resourceGroup := resourceGroupIntf.(string)
@@ -137,24 +137,6 @@ func resourceIbmIsPlacementGroupCreate(context context.Context, d *schema.Resour
 	d.SetId(*placementGroup.ID)
 
 	return resourceIbmIsPlacementGroupRead(context, d, meta)
-}
-
-func resourceIbmIsPlacementGroupMapToResourceGroupIdentity(resourceGroupIdentityMap map[string]interface{}) vpcv1.ResourceGroupIdentity {
-	resourceGroupIdentity := vpcv1.ResourceGroupIdentity{}
-
-	if resourceGroupIdentityMap["id"] != nil {
-		resourceGroupIdentity.ID = core.StringPtr(resourceGroupIdentityMap["id"].(string))
-	}
-
-	return resourceGroupIdentity
-}
-
-func resourceIbmIsPlacementGroupMapToResourceGroupIdentityByID(resourceGroupIdentityByIDMap map[string]interface{}) vpcv1.ResourceGroupIdentityByID {
-	resourceGroupIdentityByID := vpcv1.ResourceGroupIdentityByID{}
-
-	resourceGroupIdentityByID.ID = core.StringPtr(resourceGroupIdentityByIDMap["id"].(string))
-
-	return resourceGroupIdentityByID
 }
 
 func resourceIbmIsPlacementGroupRead(context context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

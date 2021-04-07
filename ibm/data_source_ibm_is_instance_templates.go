@@ -145,6 +145,32 @@ func dataSourceIBMISInstanceTemplates() *schema.Resource {
 								},
 							},
 						},
+
+						"placement_target": &schema.Schema{
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "The placement restrictions for the virtual server instance. For the target tobe changed, the instance `status` must be `stopping` or `stopped`.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": &schema.Schema{
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The unique identifier for this dedicated host.",
+									},
+									"crn": &schema.Schema{
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The CRN for this dedicated host.",
+									},
+									"href": &schema.Schema{
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The URL for this dedicated host.",
+									},
+								},
+							},
+						},
+
 						isInstanceTemplatePrimaryNetworkInterface: {
 							Type:     schema.TypeList,
 							Computed: true,
@@ -264,6 +290,11 @@ func dataSourceIBMISInstanceTemplatesRead(d *schema.ResourceData, meta interface
 		template[isInstanceTemplatesCrn] = instance.CRN
 		template[isInstanceTemplateName] = instance.Name
 		template[isInstanceTemplateUserData] = instance.UserData
+
+		if instance.PlacementTarget != nil {
+			placementTargetMap := resourceIbmIsInstanceTemplateInstancePlacementTargetPatchToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTargetPatch))
+			template["placement_target"] = []map[string]interface{}{placementTargetMap}
+		}
 
 		if instance.Keys != nil {
 			keys := []string{}

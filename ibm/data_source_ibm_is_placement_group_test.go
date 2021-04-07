@@ -41,7 +41,7 @@ func TestAccIbmIsPlacementGroupDataSourceBasic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "href"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "lifecycle_state"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "name"),
-					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "resource_group.#"),
+					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "resource_group"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "resource_type"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "strategy"),
 				),
@@ -52,7 +52,7 @@ func TestAccIbmIsPlacementGroupDataSourceBasic(t *testing.T) {
 
 func TestAccIbmIsPlacementGroupDataSourceAllArgs(t *testing.T) {
 	placementGroupStrategy := "host_spread"
-	placementGroupName := fmt.Sprintf("name_%d", acctest.RandIntRange(10, 100))
+	placementGroupName := fmt.Sprintf("tf-pg-name%d", acctest.RandIntRange(10, 100))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -68,7 +68,7 @@ func TestAccIbmIsPlacementGroupDataSourceAllArgs(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "href"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "lifecycle_state"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "name"),
-					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "resource_group.#"),
+					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "resource_group"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "resource_type"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_group.is_placement_group", "strategy"),
 				),
@@ -84,21 +84,24 @@ func testAccCheckIbmIsPlacementGroupDataSourceConfigBasic(placementGroupStrategy
 		}
 
 		data "ibm_is_placement_group" "is_placement_group" {
-			id = "id"
+			id = ibm_is_placement_group.is_placement_group.id
 		}
 	`, placementGroupStrategy)
 }
 
 func testAccCheckIbmIsPlacementGroupDataSourceConfig(placementGroupStrategy string, placementGroupName string) string {
 	return fmt.Sprintf(`
+		data "ibm_resource_group" "default" {
+			is_default=true
+		}
 		resource "ibm_is_placement_group" "is_placement_group" {
 			strategy = "%s"
 			name = "%s"
-			resource_group = { example: "object" }
+			resource_group = data.ibm_resource_group.default.id
 		}
 
 		data "ibm_is_placement_group" "is_placement_group" {
-			id = "id"
+			id = ibm_is_placement_group.is_placement_group.id
 		}
 	`, placementGroupStrategy, placementGroupName)
 }

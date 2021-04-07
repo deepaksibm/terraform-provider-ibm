@@ -37,9 +37,8 @@ func TestAccIbmIsPlacementGroupsDataSourceBasic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "id"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "first.#"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "limit"),
-					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "next.#"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.#"),
-					resource.TestCheckResourceAttr("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.strategy", placementGroupStrategy),
+					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.strategy"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "total_count"),
 				),
 			},
@@ -49,7 +48,7 @@ func TestAccIbmIsPlacementGroupsDataSourceBasic(t *testing.T) {
 
 func TestAccIbmIsPlacementGroupsDataSourceAllArgs(t *testing.T) {
 	placementGroupStrategy := "host_spread"
-	placementGroupName := fmt.Sprintf("name_%d", acctest.RandIntRange(10, 100))
+	placementGroupName := fmt.Sprintf("tf-pg-name%d", acctest.RandIntRange(10, 100))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -61,16 +60,15 @@ func TestAccIbmIsPlacementGroupsDataSourceAllArgs(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "id"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "first.#"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "limit"),
-					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "next.#"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.#"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.created_at"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.crn"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.href"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.id"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.lifecycle_state"),
-					resource.TestCheckResourceAttr("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.name", placementGroupName),
+					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.name"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.resource_type"),
-					resource.TestCheckResourceAttr("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.strategy", placementGroupStrategy),
+					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "placement_groups.0.strategy"),
 					resource.TestCheckResourceAttrSet("data.ibm_is_placement_groups.is_placement_groups", "total_count"),
 				),
 			},
@@ -91,10 +89,13 @@ func testAccCheckIbmIsPlacementGroupsDataSourceConfigBasic(placementGroupStrateg
 
 func testAccCheckIbmIsPlacementGroupsDataSourceConfig(placementGroupStrategy string, placementGroupName string) string {
 	return fmt.Sprintf(`
+		data "ibm_resource_group" "default" {
+			is_default=true
+		}
 		resource "ibm_is_placement_group" "is_placement_group" {
 			strategy = "%s"
 			name = "%s"
-			resource_group = { example: "object" }
+			resource_group = data.ibm_resource_group.default.id
 		}
 
 		data "ibm_is_placement_groups" "is_placement_groups" {

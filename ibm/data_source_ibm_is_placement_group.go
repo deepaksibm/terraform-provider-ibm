@@ -64,7 +64,6 @@ func dataSourceIbmIsPlacementGroup() *schema.Resource {
 			},
 			"resource_group": &schema.Schema{
 				Type:        schema.TypeList,
-				MaxItems:    1,
 				Computed:    true,
 				Description: "The resource group for this placement group.",
 				Elem: &schema.Resource{

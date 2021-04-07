@@ -97,6 +97,27 @@ func resourceIBMISInstanceTemplate() *schema.Resource {
 				Description:      "SSH key Ids for the instance template",
 			},
 
+			isPlacementTargetDedicatedHost: {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{isPlacementTargetDedicatedHostGroup, isPlacementTargetPlacementGroup},
+				Description:   "Unique Identifier of the Dedicated Host where the instance will be placed",
+			},
+
+			isPlacementTargetDedicatedHostGroup: {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{isPlacementTargetDedicatedHost, isPlacementTargetPlacementGroup},
+				Description:   "Unique Identifier of the Dedicated Host Group where the instance will be placed",
+			},
+
+			isPlacementTargetPlacementGroup: {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{isPlacementTargetDedicatedHost, isPlacementTargetDedicatedHostGroup},
+				Description:   "Unique Identifier of the Placement Group for restricting the placement of the instance",
+			},
+
 			isInstanceTemplateVolumeAttachments: {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -250,6 +271,31 @@ func resourceIBMISInstanceTemplate() *schema.Resource {
 				Computed:    true,
 				Description: "Instance template resource group",
 			},
+
+			"placement_target": &schema.Schema{
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The placement restrictions for the virtual server instance. For the target tobe changed, the instance `status` must be `stopping` or `stopped`.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The unique identifier for this dedicated host.",
+						},
+						"crn": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The CRN for this dedicated host.",
+						},
+						"href": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The URL for this dedicated host.",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -326,6 +372,30 @@ func instanceTemplateCreate(d *schema.ResourceData, meta interface{}, profile, n
 		VPC: &vpcv1.VPCIdentity{
 			ID: &vpcID,
 		},
+	}
+
+	if dHostIdInf, ok := d.GetOk(isPlacementTargetDedicatedHost); ok {
+		dHostIdStr := dHostIdInf.(string)
+		dHostPlaementTarget := &vpcv1.InstancePlacementTargetPatchDedicatedHostIdentity{
+			ID: &dHostIdStr,
+		}
+		instanceproto.PlacementTarget = dHostPlaementTarget
+	}
+
+	if dHostGrpIdInf, ok := d.GetOk(isPlacementTargetDedicatedHostGroup); ok {
+		dHostGrpIdStr := dHostGrpIdInf.(string)
+		dHostGrpPlaementTarget := &vpcv1.InstancePlacementTargetPatchDedicatedHostGroupIdentity{
+			ID: &dHostGrpIdStr,
+		}
+		instanceproto.PlacementTarget = dHostGrpPlaementTarget
+	}
+
+	if placementGroupInf, ok := d.GetOk(isPlacementTargetPlacementGroup); ok {
+		placementGrpStr := placementGroupInf.(string)
+		placementGrp := &vpcv1.InstancePlacementTargetPatchPlacementGroupIdentity{
+			ID: &placementGrpStr,
+		}
+		instanceproto.PlacementTarget = placementGrp
 	}
 
 	// BOOT VOLUME ATTACHMENT for instance template
@@ -546,6 +616,13 @@ func instanceTemplateGet(d *schema.ResourceData, meta interface{}, ID string) er
 		d.Set(isInstanceTemplateProfile, *identity.Name)
 	}
 
+	if instance.PlacementTarget != nil {
+		placementTargetMap := resourceIbmIsInstanceTemplateInstancePlacementTargetPatchToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTargetPatch))
+		if err = d.Set("placement_target", []map[string]interface{}{placementTargetMap}); err != nil {
+			return fmt.Errorf("Error setting placement_target: %s", err)
+		}
+	}
+
 	if instance.PrimaryNetworkInterface != nil {
 		primaryNicList := make([]map[string]interface{}, 0)
 		currentPrimNic := map[string]interface{}{}
@@ -728,4 +805,14 @@ func instanceTemplateExists(d *schema.ResourceData, meta interface{}, ID string)
 		return false, fmt.Errorf("Error Getting InstanceTemplate: %s\n%s", err, response)
 	}
 	return true, nil
+}
+
+func resourceIbmIsInstanceTemplateInstancePlacementTargetPatchToMap(instancePlacementTargetPatch vpcv1.InstancePlacementTargetPatch) map[string]interface{} {
+	instancePlacementTargetPatchMap := map[string]interface{}{}
+
+	instancePlacementTargetPatchMap["id"] = instancePlacementTargetPatch.ID
+	instancePlacementTargetPatchMap["crn"] = instancePlacementTargetPatch.CRN
+	instancePlacementTargetPatchMap["href"] = instancePlacementTargetPatch.Href
+
+	return instancePlacementTargetPatchMap
 }

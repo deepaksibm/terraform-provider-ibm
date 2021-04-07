@@ -57,16 +57,16 @@ func TestAccIbmIsPlacementGroupBasic(t *testing.T) {
 func TestAccIbmIsPlacementGroupAllArgs(t *testing.T) {
 	var conf vpcv1.PlacementGroup
 	strategy := "host_spread"
-	name := fmt.Sprintf("name_%d", acctest.RandIntRange(10, 100))
+	name := fmt.Sprintf("tf-pg-name%d", acctest.RandIntRange(10, 100))
 	strategyUpdate := "power_spread"
-	nameUpdate := fmt.Sprintf("name_%d", acctest.RandIntRange(10, 100))
+	nameUpdate := fmt.Sprintf("tf-pg-name-%d", acctest.RandIntRange(10, 100))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIbmIsPlacementGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckIbmIsPlacementGroupConfig(strategy, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckIbmIsPlacementGroupExists("ibm_is_placement_group.is_placement_group", conf),
@@ -74,14 +74,14 @@ func TestAccIbmIsPlacementGroupAllArgs(t *testing.T) {
 					resource.TestCheckResourceAttr("ibm_is_placement_group.is_placement_group", "name", name),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckIbmIsPlacementGroupConfig(strategyUpdate, nameUpdate),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("ibm_is_placement_group.is_placement_group", "strategy", strategyUpdate),
 					resource.TestCheckResourceAttr("ibm_is_placement_group.is_placement_group", "name", nameUpdate),
 				),
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "ibm_is_placement_group.is_placement_group",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -101,11 +101,13 @@ func testAccCheckIbmIsPlacementGroupConfigBasic(strategy string) string {
 
 func testAccCheckIbmIsPlacementGroupConfig(strategy string, name string) string {
 	return fmt.Sprintf(`
-
+		data "ibm_resource_group" "default" {
+			is_default=true
+		}
 		resource "ibm_is_placement_group" "is_placement_group" {
 			strategy = "%s"
 			name = "%s"
-			resource_group = { example: "object" }
+			resource_group = data.ibm_resource_group.default.id
 		}
 	`, strategy, name)
 }
