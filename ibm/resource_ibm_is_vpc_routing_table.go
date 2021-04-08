@@ -5,10 +5,12 @@ package ibm
 
 import (
 	"fmt"
-	"github.com/IBM/go-sdk-core/v4/core"
 	"log"
+	"net"
 	"strings"
 	"time"
+
+	"github.com/IBM/go-sdk-core/v4/core"
 
 	"github.com/IBM/vpc-go-sdk/vpcv1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -32,6 +34,7 @@ const (
 	rtNextHop                    = "next_hop"
 	rtZone                       = "zone"
 	rtOrigin                     = "origin"
+	rtRoutes                     = "routes"
 )
 
 func resourceIBMISVPCRoutingTable() *schema.Resource {
@@ -132,6 +135,54 @@ func resourceIBMISVPCRoutingTable() *schema.Resource {
 					},
 				},
 			},
+			rtRoutes: {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						rDestination: {
+							Type:        schema.TypeString,
+							Required:    true,
+							ForceNew:    true,
+							Description: "The destination of the route.",
+						},
+						rZone: {
+							Type:        schema.TypeString,
+							Required:    true,
+							ForceNew:    true,
+							Description: "The zone to apply the route to. Traffic from subnets in this zone will be subject to this route.",
+						},
+						rNextHop: {
+							Type:        schema.TypeString,
+							Required:    true,
+							ForceNew:    true,
+							Description: "If action is deliver, the next hop that packets will be delivered to. For other action values, its address will be 0.0.0.0.",
+						},
+						rAction: {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							Default:      "deliver",
+							Description:  "The action to perform with a packet matching the route.",
+							ValidateFunc: InvokeValidator("ibm_is_vpc_routing_table", rAction),
+						},
+						rName: {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     false,
+							Computed:     true,
+							Description:  "The user-defined name for this route.",
+							ValidateFunc: InvokeValidator("ibm_is_vpc_routing_table", rtName),
+						},
+						rID: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The routing table route identifier.",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -186,6 +237,7 @@ func resourceIBMISVPCRoutingTableCreate(d *schema.ResourceData, meta interface{}
 		routeVPCZoneIngress := d.Get(rtRouteVPCZoneIngress).(bool)
 		createVpcRoutingTableOptions.RouteVPCZoneIngress = &routeVPCZoneIngress
 	}
+
 	routeTable, response, err := sess.CreateVPCRoutingTable(createVpcRoutingTableOptions)
 	if err != nil {
 		log.Printf("[DEBUG] Create VPC Routing table err %s\n%s", err, response)
@@ -193,6 +245,54 @@ func resourceIBMISVPCRoutingTableCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", vpcID, *routeTable.ID))
+
+	if routesIntf, ok := d.GetOk("routes"); ok {
+		routes := routesIntf.([]interface{})
+		for _, routeItem := range routes {
+			route := routeItem.(map[string]interface{})
+			zone := route["zone"].(string)
+			zoneidentity := &vpcv1.ZoneIdentityByName{
+				Name: core.StringPtr(zone),
+			}
+			destination := route["destination"].(string)
+			createVpcRoutingTableRouteOptions := sess.NewCreateVPCRoutingTableRouteOptions(vpcID, *routeTable.ID, destination, zoneidentity)
+			createVpcRoutingTableRouteOptions.SetZone(zoneidentity)
+			createVpcRoutingTableRouteOptions.SetDestination(destination)
+
+			if add, ok := d.GetOk(rNextHop); ok {
+				item := add.(string)
+				if net.ParseIP(item) == nil {
+					nhConnectionID := &vpcv1.RouteNextHopPrototypeVPNGatewayConnectionIdentity{
+						ID: core.StringPtr(item),
+					}
+					createVpcRoutingTableRouteOptions.SetNextHop(nhConnectionID)
+				} else {
+					nh := &vpcv1.RouteNextHopPrototypeRouteNextHopIP{
+						Address: core.StringPtr(item),
+					}
+					createVpcRoutingTableRouteOptions.SetNextHop(nh)
+				}
+			}
+
+			if action, ok := d.GetOk(rAction); ok {
+				routeAction := action.(string)
+				createVpcRoutingTableRouteOptions.SetAction(routeAction)
+			}
+
+			if name, ok := d.GetOk(rName); ok {
+				routeName := name.(string)
+				createVpcRoutingTableRouteOptions.SetName(routeName)
+			}
+
+			routingTableroute, response, err := sess.CreateVPCRoutingTableRoute(createVpcRoutingTableRouteOptions)
+			if err != nil {
+				log.Printf("[DEBUG] Create VPC Routing table route err %s\n%s", err, response)
+				return err
+			}
+			route[rID] = *routingTableroute.ID
+			d.Set(rID, *routingTableroute.ID)
+		}
+	}
 
 	return resourceIBMISVPCRoutingTableRead(d, meta)
 }
