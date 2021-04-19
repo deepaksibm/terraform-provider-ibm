@@ -753,7 +753,7 @@ func instanceCreate(d *schema.ResourceData, meta interface{}, profile, name, vpc
 
 	if dHostIdInf, ok := d.GetOk(isPlacementTargetDedicatedHost); ok {
 		dHostIdStr := dHostIdInf.(string)
-		dHostPlaementTarget := &vpcv1.InstancePlacementTargetPatchDedicatedHostIdentity{
+		dHostPlaementTarget := &vpcv1.InstancePlacementTargetPrototypeDedicatedHostIdentity{
 			ID: &dHostIdStr,
 		}
 		instanceproto.PlacementTarget = dHostPlaementTarget
@@ -761,7 +761,7 @@ func instanceCreate(d *schema.ResourceData, meta interface{}, profile, name, vpc
 
 	if dHostGrpIdInf, ok := d.GetOk(isPlacementTargetDedicatedHostGroup); ok {
 		dHostGrpIdStr := dHostGrpIdInf.(string)
-		dHostGrpPlaementTarget := &vpcv1.InstancePlacementTargetPatchDedicatedHostGroupIdentity{
+		dHostGrpPlaementTarget := &vpcv1.InstancePlacementTargetPrototypeDedicatedHostGroupIdentity{
 			ID: &dHostGrpIdStr,
 		}
 		instanceproto.PlacementTarget = dHostGrpPlaementTarget
@@ -769,7 +769,7 @@ func instanceCreate(d *schema.ResourceData, meta interface{}, profile, name, vpc
 
 	if placementGroupInf, ok := d.GetOk(isPlacementTargetPlacementGroup); ok {
 		placementGrpStr := placementGroupInf.(string)
-		placementGrp := &vpcv1.InstancePlacementTargetPatchPlacementGroupIdentity{
+		placementGrp := &vpcv1.InstancePlacementTargetPrototype{
 			ID: &placementGrpStr,
 		}
 		instanceproto.PlacementTarget = placementGrp

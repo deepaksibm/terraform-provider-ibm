@@ -292,7 +292,7 @@ func dataSourceIBMISInstanceTemplatesRead(d *schema.ResourceData, meta interface
 		template[isInstanceTemplateUserData] = instance.UserData
 
 		if instance.PlacementTarget != nil {
-			placementTargetMap := resourceIbmIsInstanceTemplateInstancePlacementTargetPatchToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTargetPatch))
+			placementTargetMap := resourceIbmIsInstanceTemplateInstancePlacementTargetPrototypeToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTargetPrototype))
 			template["placement_target"] = []map[string]interface{}{placementTargetMap}
 		}
 

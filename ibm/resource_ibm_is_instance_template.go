@@ -272,7 +272,7 @@ func resourceIBMISInstanceTemplate() *schema.Resource {
 				Description: "Instance template resource group",
 			},
 
-			"placement_target": &schema.Schema{
+			isInstanceTemplatePlacementTarget: &schema.Schema{
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "The placement restrictions for the virtual server instance. For the target tobe changed, the instance `status` must be `stopping` or `stopped`.",
@@ -376,7 +376,7 @@ func instanceTemplateCreate(d *schema.ResourceData, meta interface{}, profile, n
 
 	if dHostIdInf, ok := d.GetOk(isPlacementTargetDedicatedHost); ok {
 		dHostIdStr := dHostIdInf.(string)
-		dHostPlaementTarget := &vpcv1.InstancePlacementTargetPatchDedicatedHostIdentity{
+		dHostPlaementTarget := &vpcv1.InstancePlacementTargetPrototypeDedicatedHostIdentity{
 			ID: &dHostIdStr,
 		}
 		instanceproto.PlacementTarget = dHostPlaementTarget
@@ -384,7 +384,7 @@ func instanceTemplateCreate(d *schema.ResourceData, meta interface{}, profile, n
 
 	if dHostGrpIdInf, ok := d.GetOk(isPlacementTargetDedicatedHostGroup); ok {
 		dHostGrpIdStr := dHostGrpIdInf.(string)
-		dHostGrpPlaementTarget := &vpcv1.InstancePlacementTargetPatchDedicatedHostGroupIdentity{
+		dHostGrpPlaementTarget := &vpcv1.InstancePlacementTargetPrototypeDedicatedHostGroupIdentity{
 			ID: &dHostGrpIdStr,
 		}
 		instanceproto.PlacementTarget = dHostGrpPlaementTarget
@@ -392,7 +392,7 @@ func instanceTemplateCreate(d *schema.ResourceData, meta interface{}, profile, n
 
 	if placementGroupInf, ok := d.GetOk(isPlacementTargetPlacementGroup); ok {
 		placementGrpStr := placementGroupInf.(string)
-		placementGrp := &vpcv1.InstancePlacementTargetPatchPlacementGroupIdentity{
+		placementGrp := &vpcv1.InstancePlacementTargetPrototypePlacementGroupIdentity{
 			ID: &placementGrpStr,
 		}
 		instanceproto.PlacementTarget = placementGrp
@@ -617,8 +617,8 @@ func instanceTemplateGet(d *schema.ResourceData, meta interface{}, ID string) er
 	}
 
 	if instance.PlacementTarget != nil {
-		placementTargetMap := resourceIbmIsInstanceTemplateInstancePlacementTargetPatchToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTargetPatch))
-		if err = d.Set("placement_target", []map[string]interface{}{placementTargetMap}); err != nil {
+		placementTargetMap := resourceIbmIsInstanceTemplateInstancePlacementTargetPrototypeToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTargetPrototype))
+		if err = d.Set(isInstanceTemplatePlacementTarget, []map[string]interface{}{placementTargetMap}); err != nil {
 			return fmt.Errorf("Error setting placement_target: %s", err)
 		}
 	}
@@ -815,4 +815,14 @@ func resourceIbmIsInstanceTemplateInstancePlacementTargetPatchToMap(instancePlac
 	instancePlacementTargetPatchMap["href"] = instancePlacementTargetPatch.Href
 
 	return instancePlacementTargetPatchMap
+}
+
+func resourceIbmIsInstanceTemplateInstancePlacementTargetPrototypeToMap(instancePlacementTargetPrototype vpcv1.InstancePlacementTargetPrototype) map[string]interface{} {
+	instancePlacementTargetPrototypeMap := map[string]interface{}{}
+
+	instancePlacementTargetPrototypeMap["id"] = instancePlacementTargetPrototype.ID
+	instancePlacementTargetPrototypeMap["crn"] = instancePlacementTargetPrototype.CRN
+	instancePlacementTargetPrototypeMap["href"] = instancePlacementTargetPrototype.Href
+
+	return instancePlacementTargetPrototypeMap
 }
