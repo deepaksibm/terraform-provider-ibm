@@ -152,7 +152,7 @@ func resourceIBMISVPCRoutingTable() *schema.Resource {
 							ForceNew:    true,
 							Description: "The zone to apply the route to. Traffic from subnets in this zone will be subject to this route.",
 						},
-						rNextHop: {
+						rtNextHop: {
 							Type:        schema.TypeString,
 							Required:    true,
 							ForceNew:    true,
@@ -283,7 +283,9 @@ func resourceIBMISVPCRoutingTableCreate(d *schema.ResourceData, meta interface{}
 				Destination: &destination,
 			}
 
-			if add, ok := d.GetOk(rNextHop); ok {
+			log.Println("********* next hop :", d.Get(rtNextHop))
+			if add, ok := d.GetOk(rtNextHop); ok {
+				log.Println("********* next hop :", add.(string))
 				item := add.(string)
 				if net.ParseIP(item) == nil {
 					nhConnectionID := &vpcv1.RouteNextHopPrototypeVPNGatewayConnectionIdentity{
