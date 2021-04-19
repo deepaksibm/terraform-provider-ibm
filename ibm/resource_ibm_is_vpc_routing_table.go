@@ -138,7 +138,6 @@ func resourceIBMISVPCRoutingTable() *schema.Resource {
 			rtRoutes: {
 				Type:     schema.TypeList,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						rDestination: {
@@ -171,14 +170,45 @@ func resourceIBMISVPCRoutingTable() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ForceNew:     false,
-							Computed:     true,
 							Description:  "The user-defined name for this route.",
-							ValidateFunc: InvokeValidator("ibm_is_vpc_routing_table", rtName),
+							ValidateFunc: InvokeValidator("ibm_is_vpc_routing_table", rName),
 						},
-						rID: {
+					},
+				},
+			},
+			"routes_ref": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"deleted": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "If present, this property indicates the referenced resource has been deleted and providessome supplementary information.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"more_info": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "Link to documentation about deleted resources.",
+									},
+								},
+							},
+						},
+						"href": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The routing table route identifier.",
+							Description: "The URL for this routing table route.",
+						},
+						"id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The unique identifier for this routing table route.",
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The user-defined name for this routing table route.",
 						},
 					},
 				},
@@ -238,26 +268,20 @@ func resourceIBMISVPCRoutingTableCreate(d *schema.ResourceData, meta interface{}
 		createVpcRoutingTableOptions.RouteVPCZoneIngress = &routeVPCZoneIngress
 	}
 
-	routeTable, response, err := sess.CreateVPCRoutingTable(createVpcRoutingTableOptions)
-	if err != nil {
-		log.Printf("[DEBUG] Create VPC Routing table err %s\n%s", err, response)
-		return err
-	}
-
-	d.SetId(fmt.Sprintf("%s/%s", vpcID, *routeTable.ID))
-
 	if routesIntf, ok := d.GetOk("routes"); ok {
+		routesPrototypes := []vpcv1.RoutePrototype{}
 		routes := routesIntf.([]interface{})
 		for _, routeItem := range routes {
 			route := routeItem.(map[string]interface{})
 			zone := route["zone"].(string)
-			zoneidentity := &vpcv1.ZoneIdentityByName{
+			zoneidentity := &vpcv1.ZoneIdentity{
 				Name: core.StringPtr(zone),
 			}
 			destination := route["destination"].(string)
-			createVpcRoutingTableRouteOptions := sess.NewCreateVPCRoutingTableRouteOptions(vpcID, *routeTable.ID, destination, zoneidentity)
-			createVpcRoutingTableRouteOptions.SetZone(zoneidentity)
-			createVpcRoutingTableRouteOptions.SetDestination(destination)
+			routePrototype := vpcv1.RoutePrototype{
+				Zone:        zoneidentity,
+				Destination: &destination,
+			}
 
 			if add, ok := d.GetOk(rNextHop); ok {
 				item := add.(string)
@@ -265,34 +289,36 @@ func resourceIBMISVPCRoutingTableCreate(d *schema.ResourceData, meta interface{}
 					nhConnectionID := &vpcv1.RouteNextHopPrototypeVPNGatewayConnectionIdentity{
 						ID: core.StringPtr(item),
 					}
-					createVpcRoutingTableRouteOptions.SetNextHop(nhConnectionID)
+					routePrototype.NextHop = nhConnectionID
 				} else {
 					nh := &vpcv1.RouteNextHopPrototypeRouteNextHopIP{
 						Address: core.StringPtr(item),
 					}
-					createVpcRoutingTableRouteOptions.SetNextHop(nh)
+					routePrototype.NextHop = nh
 				}
 			}
 
 			if action, ok := d.GetOk(rAction); ok {
 				routeAction := action.(string)
-				createVpcRoutingTableRouteOptions.SetAction(routeAction)
+				routePrototype.Action = &routeAction
 			}
 
 			if name, ok := d.GetOk(rName); ok {
 				routeName := name.(string)
-				createVpcRoutingTableRouteOptions.SetName(routeName)
+				routePrototype.Name = &routeName
 			}
-
-			routingTableroute, response, err := sess.CreateVPCRoutingTableRoute(createVpcRoutingTableRouteOptions)
-			if err != nil {
-				log.Printf("[DEBUG] Create VPC Routing table route err %s\n%s", err, response)
-				return err
-			}
-			route[rID] = *routingTableroute.ID
-			d.Set(rID, *routingTableroute.ID)
+			routesPrototypes = append(routesPrototypes, routePrototype)
 		}
+		createVpcRoutingTableOptions.Routes = routesPrototypes
 	}
+
+	routeTable, response, err := sess.CreateVPCRoutingTable(createVpcRoutingTableOptions)
+	if err != nil {
+		log.Printf("[DEBUG] Create VPC Routing table err %s\n%s", err, response)
+		return err
+	}
+
+	d.SetId(fmt.Sprintf("%s/%s", vpcID, *routeTable.ID))
 
 	return resourceIBMISVPCRoutingTableRead(d, meta)
 }
@@ -325,7 +351,12 @@ func resourceIBMISVPCRoutingTableRead(d *schema.ResourceData, meta interface{}) 
 	d.Set(rtRouteTransitGatewayIngress, routeTable.RouteTransitGatewayIngress)
 	d.Set(rtRouteVPCZoneIngress, routeTable.RouteVPCZoneIngress)
 	d.Set(rtIsDefault, routeTable.IsDefault)
-
+	if routeTable.Routes != nil {
+		err = d.Set("routes_ref", resourceIBMIsRoutingTableFlattenRoutes(routeTable.Routes))
+		if err != nil {
+			return fmt.Errorf("Error setting disks %s", err)
+		}
+	}
 	subnets := make([]map[string]interface{}, 0)
 
 	for _, s := range routeTable.Subnets {
@@ -338,6 +369,46 @@ func resourceIBMISVPCRoutingTableRead(d *schema.ResourceData, meta interface{}) 
 	d.Set(rtSubnets, subnets)
 
 	return nil
+}
+
+func resourceIBMIsRoutingTableFlattenRoutes(result []vpcv1.RouteReference) (routes []map[string]interface{}) {
+	for _, routesItem := range result {
+		routes = append(routes, resourceIBMIsRoutingTableRoutesToMap(routesItem))
+	}
+
+	return routes
+}
+
+func resourceIBMIsRoutingTableRoutesToMap(routesItem vpcv1.RouteReference) (routesMap map[string]interface{}) {
+	routesMap = map[string]interface{}{}
+
+	if routesItem.Deleted != nil {
+		deletedList := []map[string]interface{}{}
+		deletedMap := resourceIBMIsRoutingTableRoutesDeletedToMap(*routesItem.Deleted)
+		deletedList = append(deletedList, deletedMap)
+		routesMap["deleted"] = deletedList
+	}
+	if routesItem.Href != nil {
+		routesMap["href"] = routesItem.Href
+	}
+	if routesItem.ID != nil {
+		routesMap["id"] = routesItem.ID
+	}
+	if routesItem.Name != nil {
+		routesMap["name"] = routesItem.Name
+	}
+
+	return routesMap
+}
+
+func resourceIBMIsRoutingTableRoutesDeletedToMap(deletedItem vpcv1.RouteReferenceDeleted) (deletedMap map[string]interface{}) {
+	deletedMap = map[string]interface{}{}
+
+	if deletedItem.MoreInfo != nil {
+		deletedMap["more_info"] = deletedItem.MoreInfo
+	}
+
+	return deletedMap
 }
 
 func resourceIBMISVPCRoutingTableUpdate(d *schema.ResourceData, meta interface{}) error {
