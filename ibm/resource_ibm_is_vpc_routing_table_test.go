@@ -44,6 +44,35 @@ func TestAccIBMISVPCRoutingTable_basic(t *testing.T) {
 	})
 }
 
+func TestAccIBMISVPCRoutingTableWithRoutes_basic(t *testing.T) {
+	var vpcRouteTables string
+	vpcName := fmt.Sprintf("tf-vpc-%d", acctest.RandIntRange(10, 100))
+	routeTableName := fmt.Sprintf("tf-vpcrt-%d", acctest.RandIntRange(10, 100))
+	routeName := fmt.Sprintf("tf-vpcroute-%d", acctest.RandIntRange(10, 100))
+	routeAction := "deliver"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckIBMISVPCRouteTableDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckIBMISVPCRouteTableWithRouteConfig(vpcName, routeTableName, routeName, routeAction),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIBMISVPCRouteTableExists("ibm_is_vpc_routing_table.test_ibm_is_vpc_routing_table", vpcRouteTables),
+					resource.TestCheckResourceAttr(
+						"ibm_is_vpc_routing_table.test_ibm_is_vpc_routing_table", "name", routeTableName),
+					resource.TestCheckResourceAttr(
+						"ibm_is_vpc_routing_table.test_ibm_is_vpc_routing_table", "routes_ref.#", "1"),
+					resource.TestCheckResourceAttr(
+						"ibm_is_vpc_routing_table.test_ibm_is_vpc_routing_table", "routes_ref.0.name", routeName),
+					resource.TestCheckResourceAttrSet(
+						"ibm_is_vpc_routing_table.test_ibm_is_vpc_routing_table", "routes_ref.0.id"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckIBMISVPCRouteTableDestroy(s *terraform.State) error {
 	//userDetails, _ := testAccProvider.Meta().(ClientSession).BluemixUserDetails()
 
@@ -115,4 +144,23 @@ resource "ibm_is_vpc_routing_table" "test_ibm_is_vpc_routing_table" {
 	vpc = ibm_is_vpc.testacc_vpc.id
 	name = "%s"
 }`, name, rtName)
+}
+
+func testAccCheckIBMISVPCRouteTableWithRouteConfig(vpcName, rtName, routeName, action string) string {
+	return fmt.Sprintf(`
+resource "ibm_is_vpc" "testacc_vpc" {
+	name = "%s"
+}
+resource "ibm_is_vpc_routing_table" "test_ibm_is_vpc_routing_table" {
+	depends_on = [ibm_is_vpc.testacc_vpc]
+	vpc = ibm_is_vpc.testacc_vpc.id
+	name = "%s"
+	routes {
+		zone = "us-south-2"
+		name = "%s"
+		destination = "192.168.4.0/24"
+		action = "%s"
+		next_hop = "192.168.5.0"
+	  }
+}`, vpcName, rtName, routeName, action)
 }

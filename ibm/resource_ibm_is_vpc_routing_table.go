@@ -4,12 +4,14 @@
 package ibm
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
 	"strings"
 	"time"
 
+	"github.com/IBM-Cloud/terraform-provider-ibm/ibm/internal/hashcode"
 	"github.com/IBM/go-sdk-core/v4/core"
 
 	"github.com/IBM/vpc-go-sdk/vpcv1"
@@ -136,17 +138,18 @@ func resourceIBMISVPCRoutingTable() *schema.Resource {
 				},
 			},
 			rtRoutes: {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						rDestination: {
+						rtDestination: {
 							Type:        schema.TypeString,
 							Required:    true,
 							ForceNew:    true,
 							Description: "The destination of the route.",
 						},
-						rZone: {
+						rtZone: {
 							Type:        schema.TypeString,
 							Required:    true,
 							ForceNew:    true,
@@ -158,7 +161,7 @@ func resourceIBMISVPCRoutingTable() *schema.Resource {
 							ForceNew:    true,
 							Description: "If action is deliver, the next hop that packets will be delivered to. For other action values, its address will be 0.0.0.0.",
 						},
-						rAction: {
+						rtAction: {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ForceNew:     true,
@@ -166,52 +169,21 @@ func resourceIBMISVPCRoutingTable() *schema.Resource {
 							Description:  "The action to perform with a packet matching the route.",
 							ValidateFunc: InvokeValidator("ibm_is_vpc_routing_table", rAction),
 						},
-						rName: {
+						rtName: {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ForceNew:     false,
+							Computed:     true,
 							Description:  "The user-defined name for this route.",
 							ValidateFunc: InvokeValidator("ibm_is_vpc_routing_table", rName),
-						},
-					},
-				},
-			},
-			"routes_ref": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"deleted": {
-							Type:        schema.TypeList,
-							Computed:    true,
-							Description: "If present, this property indicates the referenced resource has been deleted and providessome supplementary information.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"more_info": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "Link to documentation about deleted resources.",
-									},
-								},
-							},
-						},
-						"href": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The URL for this routing table route.",
 						},
 						"id": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The unique identifier for this routing table route.",
 						},
-						"name": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The user-defined name for this routing table route.",
-						},
 					},
 				},
+				Set: resourceIbmRouteTableHash,
 			},
 		},
 	}
@@ -268,9 +240,10 @@ func resourceIBMISVPCRoutingTableCreate(d *schema.ResourceData, meta interface{}
 		createVpcRoutingTableOptions.RouteVPCZoneIngress = &routeVPCZoneIngress
 	}
 
-	if routesIntf, ok := d.GetOk("routes"); ok {
+	if _, ok := d.GetOk("routes"); ok {
+		routes := d.Get("routes").(*schema.Set).List()
 		routesPrototypes := []vpcv1.RoutePrototype{}
-		routes := routesIntf.([]interface{})
+
 		for _, routeItem := range routes {
 			route := routeItem.(map[string]interface{})
 			zone := route["zone"].(string)
@@ -283,29 +256,25 @@ func resourceIBMISVPCRoutingTableCreate(d *schema.ResourceData, meta interface{}
 				Destination: &destination,
 			}
 
-			log.Println("********* next hop :", d.Get(rtNextHop))
-			if add, ok := d.GetOk(rtNextHop); ok {
-				log.Println("********* next hop :", add.(string))
-				item := add.(string)
-				if net.ParseIP(item) == nil {
-					nhConnectionID := &vpcv1.RouteNextHopPrototypeVPNGatewayConnectionIdentity{
-						ID: core.StringPtr(item),
-					}
-					routePrototype.NextHop = nhConnectionID
-				} else {
-					nh := &vpcv1.RouteNextHopPrototypeRouteNextHopIP{
-						Address: core.StringPtr(item),
-					}
-					routePrototype.NextHop = nh
+			nexthop := route["next_hop"].(string)
+			if net.ParseIP(nexthop) == nil {
+				nhConnectionID := &vpcv1.RouteNextHopPrototypeVPNGatewayConnectionIdentity{
+					ID: core.StringPtr(nexthop),
 				}
+				routePrototype.NextHop = nhConnectionID
+			} else {
+				nh := &vpcv1.RouteNextHopPrototypeRouteNextHopIP{
+					Address: core.StringPtr(nexthop),
+				}
+				routePrototype.NextHop = nh
 			}
 
-			if action, ok := d.GetOk(rAction); ok {
+			if action, ok := route["action"]; ok {
 				routeAction := action.(string)
 				routePrototype.Action = &routeAction
 			}
 
-			if name, ok := d.GetOk(rName); ok {
+			if name, ok := route["name"]; ok {
 				routeName := name.(string)
 				routePrototype.Name = &routeName
 			}
@@ -354,9 +323,45 @@ func resourceIBMISVPCRoutingTableRead(d *schema.ResourceData, meta interface{}) 
 	d.Set(rtRouteVPCZoneIngress, routeTable.RouteVPCZoneIngress)
 	d.Set(rtIsDefault, routeTable.IsDefault)
 	if routeTable.Routes != nil {
-		err = d.Set("routes_ref", resourceIBMIsRoutingTableFlattenRoutes(routeTable.Routes))
+		routes := make([]map[string]interface{}, 0)
+		for _, routesItem := range routeTable.Routes {
+			routesMap := make(map[string]interface{})
+
+			getVpcRoutingTableRouteOptions := sess.NewGetVPCRoutingTableRouteOptions(idSet[0], idSet[1], *routesItem.ID)
+			route, response, err := sess.GetVPCRoutingTableRoute(getVpcRoutingTableRouteOptions)
+			if err != nil {
+				if response != nil && response.StatusCode == 404 {
+					d.SetId("")
+					return nil
+				}
+				return fmt.Errorf("Error Getting VPC Routing table route: %s\n%s", err, response)
+			}
+			routesMap[rtDestination] = *route.Destination
+			routesMap["id"] = *route.ID
+			//routesMap[rtAction] =
+			routesMap[rtName] = *route.Name
+			routesMap[rtZone] = *route.Zone.Name
+			if route.NextHop != nil {
+				nexthop := route.NextHop.(*vpcv1.RouteNextHop)
+				if nexthop.Address != nil {
+					routesMap[rNextHop] = *nexthop.Address
+				}
+				if nexthop.ID != nil {
+					routesMap[rNextHop] = *nexthop.ID
+				}
+			}
+			routes = append(routes, routesMap)
+		}
+
+		routesinput := d.Get("routes").(*schema.Set).List()
+		for routeItemId, routeItem := range routesinput {
+			route := routeItem.(map[string]interface{})
+			routes[routeItemId][rtAction] = route[rtAction].(string)
+		}
+		d.Set(rtRoutes, routes)
+
 		if err != nil {
-			return fmt.Errorf("Error setting disks %s", err)
+			return fmt.Errorf("Error setting routes %s", err)
 		}
 	}
 	subnets := make([]map[string]interface{}, 0)
@@ -442,6 +447,73 @@ func resourceIBMISVPCRoutingTableUpdate(d *schema.ResourceData, meta interface{}
 		routeVPCZoneIngress := d.Get(rtRouteVPCZoneIngress).(bool)
 		routingTablePatchModel.RouteVPCZoneIngress = core.BoolPtr(routeVPCZoneIngress)
 	}
+
+	if d.HasChange("routes") {
+		o, n := d.GetChange("routes")
+		ors := o.(*schema.Set).Difference(n.(*schema.Set))
+		nrs := n.(*schema.Set).Difference(o.(*schema.Set))
+
+		for _, route := range ors.List() {
+			m := route.(map[string]interface{})
+
+			rid := m["id"].(string)
+
+			deleteVpcRoutingTableRouteOptions := sess.NewDeleteVPCRoutingTableRouteOptions(idSet[0], idSet[1], rid)
+			response, err := sess.DeleteVPCRoutingTableRoute(deleteVpcRoutingTableRouteOptions)
+			if err != nil {
+				if response != nil && response.StatusCode != 404 {
+					log.Printf("Error deleting VPC Routing table route : %s", response)
+
+				}
+				return err
+			}
+		}
+
+		// Make sure we save the state of the currently configured rules
+		routes := o.(*schema.Set).Intersection(n.(*schema.Set))
+		d.Set("routes", routes)
+
+		// Then loop through all the newly configured routes and create them
+		for _, route := range nrs.List() {
+			m := route.(map[string]interface{})
+			destination := m[rtDestination].(string)
+			zoneName := m[rtZone].(string)
+			zone := &vpcv1.ZoneIdentityByName{
+				Name: &zoneName,
+			}
+			createVpcRoutingTableRouteOptions := sess.NewCreateVPCRoutingTableRouteOptions(idSet[0], idSet[1], destination, zone)
+
+			nexthop := m["next_hop"].(string)
+			if net.ParseIP(nexthop) == nil {
+				nhConnectionID := &vpcv1.RouteNextHopPrototypeVPNGatewayConnectionIdentity{
+					ID: core.StringPtr(nexthop),
+				}
+				createVpcRoutingTableRouteOptions.NextHop = nhConnectionID
+			} else {
+				nh := &vpcv1.RouteNextHopPrototypeRouteNextHopIP{
+					Address: core.StringPtr(nexthop),
+				}
+				createVpcRoutingTableRouteOptions.NextHop = nh
+			}
+
+			if action, ok := m["action"]; ok {
+				routeAction := action.(string)
+				createVpcRoutingTableRouteOptions.Action = &routeAction
+			}
+
+			if name, ok := m["name"]; ok {
+				routeName := name.(string)
+				createVpcRoutingTableRouteOptions.Name = &routeName
+			}
+
+			_, response, err := sess.CreateVPCRoutingTableRoute(createVpcRoutingTableRouteOptions)
+			if err != nil {
+				log.Printf("[DEBUG] Create VPC Routing table route err %s\n%s", err, response)
+				return err
+			}
+		}
+
+	}
 	routingTablePatchModelAsPatch, asPatchErr := routingTablePatchModel.AsPatch()
 	if asPatchErr != nil {
 		return fmt.Errorf("Error calling asPatch for RoutingTablePatchModel: %s", asPatchErr)
@@ -491,4 +563,34 @@ func resourceIBMISVPCRoutingTableExists(d *schema.ResourceData, meta interface{}
 		return false, fmt.Errorf("Error Getting VPC Routing table : %s\n%s", err, response)
 	}
 	return true, nil
+}
+
+func resourceIbmRouteTableHash(v interface{}) int {
+	var buf bytes.Buffer
+	m, castOk := v.(map[string]interface{})
+	if !castOk {
+		return 0
+	}
+
+	if v, ok := m[rtDestination]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[rtZone]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[rtName]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[rtAction]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[rtNextHop]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
 }
