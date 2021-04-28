@@ -23,6 +23,7 @@ const (
 	isVirtualEndpointGatewayCreatedAt          = "created_at"
 	isVirtualEndpointGatewayIPs                = "ips"
 	isVirtualEndpointGatewayIPsID              = "id"
+	isVirtualEndpointGatewayIPsAutoDelete      = "auto_delete"
 	isVirtualEndpointGatewayIPsAddress         = "address"
 	isVirtualEndpointGatewayIPsName            = "name"
 	isVirtualEndpointGatewayIPsSubnet          = "subnet"
@@ -96,11 +97,10 @@ func resourceIBMISEndpointGateway() *schema.Resource {
 				Description: "Endpoint gateway lifecycle state",
 			},
 			isVirtualEndpointGatewayIPs: {
-				Type:             schema.TypeList,
-				Optional:         true,
-				Computed:         true,
-				Description:      "Endpoint gateway resource group",
-				DiffSuppressFunc: applyOnce,
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Computed:    true,
+				Description: "Endpoint gateway resource group",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						isVirtualEndpointGatewayIPsID: {
@@ -108,6 +108,12 @@ func resourceIBMISEndpointGateway() *schema.Resource {
 							Optional:    true,
 							Computed:    true,
 							Description: "The IPs id",
+						},
+						isVirtualEndpointGatewayIPsAutoDelete: {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     true,
+							Description: "Automatically delete reserved IP when the target is deleted or when the reserved IP is unbound.",
 						},
 						isVirtualEndpointGatewayIPsName: {
 							Type:        schema.TypeString,
@@ -118,13 +124,17 @@ func resourceIBMISEndpointGateway() *schema.Resource {
 						isVirtualEndpointGatewayIPsSubnet: {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Computed:    true,
 							Description: "The Subnet id",
 						},
 						isVirtualEndpointGatewayIPsResourceType: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The VPC Resource Type",
+						},
+						isVirtualEndpointGatewayIPsAddress: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The IP address",
 						},
 					},
 				},
@@ -234,7 +244,7 @@ func resourceIBMisVirtualEndpointGatewayCreate(d *schema.ResourceData, meta inte
 
 	// IPs option
 	if ips, ok := d.GetOk(isVirtualEndpointGatewayIPs); ok {
-		opt.SetIps(expandIPs(ips.([]interface{})))
+		opt.SetIps(expandIPs(ips.(*schema.Set).List()))
 	}
 
 	// Resource group option
@@ -287,6 +297,63 @@ func resourceIBMisVirtualEndpointGatewayUpdate(d *schema.ResourceData, meta inte
 		}
 
 	}
+
+	if d.HasChange(isVirtualEndpointGatewayIPs) {
+		o, n := d.GetChange(isVirtualEndpointGatewayIPs)
+		ors := o.(*schema.Set).Difference(n.(*schema.Set))
+		nrs := n.(*schema.Set).Difference(o.(*schema.Set))
+		gatewayID := d.Id()
+		for _, ips := range ors.List() {
+			ipsMap := ips.(map[string]interface{})
+
+			ipID := ipsMap["id"].(string)
+
+			opt := sess.NewRemoveEndpointGatewayIPOptions(gatewayID, ipID)
+			response, err := sess.RemoveEndpointGatewayIP(opt)
+			if err != nil && response.StatusCode != 404 {
+				log.Printf("Remove Endpoint Gateway IP failed: %v", response)
+				return err
+			}
+		}
+
+		// Make sure we save the state of the currently configured rules
+		routes := o.(*schema.Set).Intersection(n.(*schema.Set))
+		d.Set(isVirtualEndpointGatewayIPs, routes)
+
+		// Then loop through all the newly configured routes and create them
+		for _, ips := range nrs.List() {
+			ipsMap := ips.(map[string]interface{})
+			ipID := ipsMap["id"].(string)
+			if ipID == "" {
+				subnetID := ipsMap[isSubNetID].(string)
+				options := sess.NewCreateSubnetReservedIPOptions(subnetID)
+
+				nameStr := ipsMap[isReservedIPName].(string)
+
+				if nameStr != "" {
+					options.Name = &nameStr
+				}
+
+				autoDeleteBool := ipsMap[isReservedIPAutoDelete].(bool)
+				options.AutoDelete = &autoDeleteBool
+
+				rip, response, err := sess.CreateSubnetReservedIP(options)
+				if err != nil || response == nil || rip == nil {
+					return fmt.Errorf("Error creating the reserved IP: %s\n%s", err, response)
+				}
+				ipID = *rip.ID
+			}
+
+			opt := sess.NewAddEndpointGatewayIPOptions(gatewayID, ipID)
+			_, response, err := sess.AddEndpointGatewayIP(opt)
+			if err != nil {
+				log.Printf("Add Endpoint Gateway failed: %v", response)
+				return err
+			}
+		}
+
+	}
+
 	if d.HasChange(isVirtualEndpointGatewayTags) {
 		opt := sess.NewGetEndpointGatewayOptions(d.Id())
 		result, response, err := sess.GetEndpointGateway(opt)
@@ -374,6 +441,10 @@ func expandIPs(ipsSet []interface{}) (ipsOptions []vpcv1.EndpointGatewayReserved
 		// IPs option
 		ipsID := ips[isVirtualEndpointGatewayIPsID].(string)
 		ipsName := ips[isVirtualEndpointGatewayIPsName].(string)
+		var ipsautoDeleteBool bool
+		if ipsautoDeleteBoolIntf := ips[isVirtualEndpointGatewayIPsAutoDelete]; ipsautoDeleteBoolIntf != nil {
+			ipsautoDeleteBool = ipsautoDeleteBoolIntf.(bool)
+		}
 
 		// IPs subnet option
 		ipsSubnetID := ips[isVirtualEndpointGatewayIPsSubnet].(string)
@@ -383,9 +454,10 @@ func expandIPs(ipsSet []interface{}) (ipsOptions []vpcv1.EndpointGatewayReserved
 		}
 
 		ipsOpt := &vpcv1.EndpointGatewayReservedIP{
-			ID:     core.StringPtr(ipsID),
-			Name:   core.StringPtr(ipsName),
-			Subnet: ipsSubnetOpt,
+			ID:         core.StringPtr(ipsID),
+			Name:       core.StringPtr(ipsName),
+			Subnet:     ipsSubnetOpt,
+			AutoDelete: core.BoolPtr(ipsautoDeleteBool),
 		}
 		ipsOptions = append(ipsOptions, ipsOpt)
 	}
@@ -399,7 +471,7 @@ func flattenIPs(ipsList []vpcv1.ReservedIPReference) interface{} {
 		ips[isVirtualEndpointGatewayIPsID] = *item.ID
 		ips[isVirtualEndpointGatewayIPsName] = *item.Name
 		ips[isVirtualEndpointGatewayIPsResourceType] = *item.ResourceType
-
+		ips[isVirtualEndpointGatewayIPsAddress] = *item.Address
 		ipsListOutput = append(ipsListOutput, ips)
 	}
 	return ipsListOutput
