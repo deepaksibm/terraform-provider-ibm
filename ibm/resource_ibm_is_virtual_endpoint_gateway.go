@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/IBM/go-sdk-core/core"
@@ -470,6 +471,7 @@ func flattenIPs(ipsList []vpcv1.ReservedIPReference) interface{} {
 		ips := make(map[string]interface{}, 0)
 		ips[isVirtualEndpointGatewayIPsID] = *item.ID
 		ips[isVirtualEndpointGatewayIPsName] = *item.Name
+		ips[isVirtualEndpointGatewayIPsSubnet] = strings.Split(*item.Href, "/")[5]
 		ips[isVirtualEndpointGatewayIPsResourceType] = *item.ResourceType
 		ips[isVirtualEndpointGatewayIPsAddress] = *item.Address
 		ipsListOutput = append(ipsListOutput, ips)
