@@ -4,6 +4,7 @@
 package ibm
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IBM-Cloud/terraform-provider-ibm/ibm/internal/hashcode"
 	"github.com/IBM/go-sdk-core/core"
 	"github.com/IBM/vpc-go-sdk/vpcv1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -496,4 +498,38 @@ func flattenEndpointGatewayTarget(target *vpcv1.EndpointGatewayTarget) interface
 	}
 	targetSlice = append(targetSlice, targetOutput)
 	return targetSlice
+}
+
+func resourceIbmVirtualEndPointGatewayHash(v interface{}) int {
+	var buf bytes.Buffer
+	m, castOk := v.(map[string]interface{})
+	if !castOk {
+		return 0
+	}
+
+	if v, ok := m[isVirtualEndpointGatewayIPsID]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[isVirtualEndpointGatewayIPsAutoDelete]; ok {
+		buf.WriteString(fmt.Sprintf("%t-", v.(bool)))
+	}
+
+	if v, ok := m[isVirtualEndpointGatewayIPsName]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[isVirtualEndpointGatewayIPsSubnet]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[isVirtualEndpointGatewayIPsResourceType]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m[isVirtualEndpointGatewayIPsAddress]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
 }
