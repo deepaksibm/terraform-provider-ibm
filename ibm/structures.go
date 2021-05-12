@@ -1990,6 +1990,23 @@ func resourceTagsCustomizeDiff(diff *schema.ResourceDiff) error {
 	return nil
 }
 
+func resourceSharesValidate(diff *schema.ResourceDiff) error {
+	if _, ok := diff.GetOk("iops"); ok {
+		if profileIntf, ok := diff.GetOk("profile"); ok {
+			if profileIntf.(string) != "custom-iops" {
+				return fmt.Errorf("The Share profile specified in the request cannot accept IOPS values")
+			}
+		}
+	}
+	if diff.HasChange("size") {
+		oldSize, newSize := diff.GetChange("size")
+		if newSize.(int) < oldSize.(int) {
+			return fmt.Errorf("The new share size '%d' must be greater than the current share size '%d'", newSize.(int), oldSize.(int))
+		}
+	}
+	return nil
+}
+
 func resourceVolumeAttachmentValidate(diff *schema.ResourceDiff) error {
 
 	if volsintf, ok := diff.GetOk("volume_attachments"); ok {
