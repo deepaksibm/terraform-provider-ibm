@@ -28,7 +28,7 @@ resource "ibm_is_virtual_endpoint_gateway" "endpoint_gateway1" {
 }
 
 resource "ibm_is_virtual_endpoint_gateway" "endpoint_gateway2" {
-	name = "my-endpoint-gateway-1"
+	name = "my-endpoint-gateway-2"
 	target {
 	  name          = "ibm-dns-server2"
 	  resource_type = "provider_infrastructure_service"
@@ -41,8 +41,19 @@ resource "ibm_is_virtual_endpoint_gateway" "endpoint_gateway2" {
 	resource_group = data.ibm_resource_group.test_acc.id
 }
 
+resource "ibm_is_vpc" "vpc1" {
+	name = "my-vpc"
+}
+
+resource "ibm_is_subnet" "subnet1" {
+	name                     = "my-subnet"
+	vpc                      = ibm_is_vpc.vpc1.id
+	zone                     = "us-south-1"
+	total_ipv4_address_count = 256
+}
+
 resource "ibm_is_virtual_endpoint_gateway" "endpoint_gateway3" {
-	name = "my-endpoint-gateway-1"
+	name = "my-endpoint-gateway-3"
 	target {
 	  name          = "ibm-dns-server2"
 	  resource_type = "provider_infrastructure_service"
@@ -53,6 +64,26 @@ resource "ibm_is_virtual_endpoint_gateway" "endpoint_gateway3" {
 	}
 	resource_group = data.ibm_resource_group.test_acc.id
 }
+
+resource "ibm_is_subnet_reserved_ip" "res_ip" {
+  subnet = ibm_is_subnet.subnet1.id
+}
+
+resource "ibm_is_virtual_endpoint_gateway" "endpoint_gateway4" {
+	name = "my-endpoint-gateway-4"
+	target {
+	  name          = "ibm-dns-server2"
+	  resource_type = "provider_infrastructure_service"
+	}
+	vpc = ibm_is_vpc.testacc_vpc.id
+	resource_group = data.ibm_resource_group.test_acc.id
+}
+
+resource "ibm_is_virtual_endpoint_gateway_ip" "virtual_endpoint_gateway_ip" {
+	gateway     = ibm_is_virtual_endpoint_gateway.endpoint_gateway4.id
+	reserved_ip = ibm_is_subnet_reserved_ip.res_ip.id
+}
+
 ```
 
 ## Argument Reference
@@ -72,6 +103,8 @@ The following arguments are supported:
   - `resource_type` - (Computed, string)Endpoint gateway resource group VPC Resource Type
 - `resource_group` - (Optional, string,ForceNew)The resource group id
 - `tags` - (Optional, array of strings) Tags associated with the instance.
+
+**NOTE**: `ips` blocks cannot be modified once it is applied. To better manage the reserved ip binding, use the resource ibm_is_subnet_reserved_ip to create and manage a new reserved ip and the resource ibm_virtual_endpoint_gateway_ip which binds and unbinds the reserved ip to the endpoint gateway
 
 ## Attribute Reference
 
