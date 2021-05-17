@@ -112,12 +112,14 @@ func resourceIBMISEndpointGateway() *schema.Resource {
 							Computed:    true,
 							Description: "The IPs id",
 						},
-						isVirtualEndpointGatewayIPsAutoDelete: {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     true,
-							Description: "Automatically delete reserved IP when the target is deleted or when the reserved IP is unbound.",
-						},
+						/*
+							isVirtualEndpointGatewayIPsAutoDelete: {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Default:     true,
+								Description: "Automatically delete reserved IP when the target is deleted or when the reserved IP is unbound.",
+							},
+						*/
 						isVirtualEndpointGatewayIPsName: {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -141,6 +143,7 @@ func resourceIBMISEndpointGateway() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceIbmVirtualEndPointGatewayHash,
 			},
 			isVirtualEndpointGatewayTarget: {
 				Type:        schema.TypeList,
@@ -444,10 +447,6 @@ func expandIPs(ipsSet []interface{}) (ipsOptions []vpcv1.EndpointGatewayReserved
 		// IPs option
 		ipsID := ips[isVirtualEndpointGatewayIPsID].(string)
 		ipsName := ips[isVirtualEndpointGatewayIPsName].(string)
-		var ipsautoDeleteBool bool
-		if ipsautoDeleteBoolIntf := ips[isVirtualEndpointGatewayIPsAutoDelete]; ipsautoDeleteBoolIntf != nil {
-			ipsautoDeleteBool = ipsautoDeleteBoolIntf.(bool)
-		}
 
 		// IPs subnet option
 		ipsSubnetID := ips[isVirtualEndpointGatewayIPsSubnet].(string)
@@ -457,11 +456,16 @@ func expandIPs(ipsSet []interface{}) (ipsOptions []vpcv1.EndpointGatewayReserved
 		}
 
 		ipsOpt := &vpcv1.EndpointGatewayReservedIP{
-			ID:         core.StringPtr(ipsID),
-			Name:       core.StringPtr(ipsName),
-			Subnet:     ipsSubnetOpt,
-			AutoDelete: core.BoolPtr(ipsautoDeleteBool),
+			ID:     core.StringPtr(ipsID),
+			Name:   core.StringPtr(ipsName),
+			Subnet: ipsSubnetOpt,
 		}
+		/*
+			if ipsautoDeleteBoolIntf := ips[isVirtualEndpointGatewayIPsAutoDelete]; ipsautoDeleteBoolIntf != nil {
+				ipsautoDeleteBool := ipsautoDeleteBoolIntf.(bool)
+				ipsOpt.AutoDelete = core.BoolPtr(ipsautoDeleteBool)
+			}
+		*/
 		ipsOptions = append(ipsOptions, ipsOpt)
 	}
 	return ipsOptions
@@ -510,11 +514,11 @@ func resourceIbmVirtualEndPointGatewayHash(v interface{}) int {
 	if v, ok := m[isVirtualEndpointGatewayIPsID]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
-
-	if v, ok := m[isVirtualEndpointGatewayIPsAutoDelete]; ok {
-		buf.WriteString(fmt.Sprintf("%t-", v.(bool)))
-	}
-
+	/*
+		if v, ok := m[isVirtualEndpointGatewayIPsAutoDelete]; ok {
+			buf.WriteString(fmt.Sprintf("%t-", v.(bool)))
+		}
+	*/
 	if v, ok := m[isVirtualEndpointGatewayIPsName]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
