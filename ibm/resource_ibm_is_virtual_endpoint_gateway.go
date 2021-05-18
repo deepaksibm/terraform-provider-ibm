@@ -109,7 +109,6 @@ func resourceIBMISEndpointGateway() *schema.Resource {
 						isVirtualEndpointGatewayIPsID: {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Computed:    true,
 							Description: "The IPs id",
 						},
 						/*
@@ -123,7 +122,6 @@ func resourceIBMISEndpointGateway() *schema.Resource {
 						isVirtualEndpointGatewayIPsName: {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Computed:    true,
 							Description: "The IPs name",
 						},
 						isVirtualEndpointGatewayIPsSubnet: {
@@ -471,18 +469,19 @@ func expandIPs(ipsSet []interface{}) (ipsOptions []vpcv1.EndpointGatewayReserved
 	return ipsOptions
 }
 
-func flattenIPs(ipsList []vpcv1.ReservedIPReference) interface{} {
-	ipsListOutput := make([]interface{}, 0)
+func flattenIPs(ipsList []vpcv1.ReservedIPReference) *schema.Set {
+	//ipsListOutput := make([]interface{}, 0)
+	ipsSet := &schema.Set{F: resourceIbmVirtualEndPointGatewayHash}
 	for _, item := range ipsList {
-		ips := make(map[string]interface{}, 0)
+		ips := make(map[string]interface{})
 		ips[isVirtualEndpointGatewayIPsID] = *item.ID
 		ips[isVirtualEndpointGatewayIPsName] = *item.Name
 		ips[isVirtualEndpointGatewayIPsSubnet] = strings.Split(*item.Href, "/")[5]
 		ips[isVirtualEndpointGatewayIPsResourceType] = *item.ResourceType
 		ips[isVirtualEndpointGatewayIPsAddress] = *item.Address
-		ipsListOutput = append(ipsListOutput, ips)
+		ipsSet.Add(ips)
 	}
-	return ipsListOutput
+	return ipsSet
 }
 
 func flattenEndpointGatewayTarget(target *vpcv1.EndpointGatewayTarget) interface{} {
@@ -527,13 +526,7 @@ func resourceIbmVirtualEndPointGatewayHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	if v, ok := m[isVirtualEndpointGatewayIPsResourceType]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-
-	if v, ok := m[isVirtualEndpointGatewayIPsAddress]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-
+	log.Println("******* buf String() output: ", buf.String())
+	log.Println("******* Hashcode: ", hashcode.String(buf.String()))
 	return hashcode.String(buf.String())
 }
