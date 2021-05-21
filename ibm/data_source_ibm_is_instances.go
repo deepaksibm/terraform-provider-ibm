@@ -48,6 +48,34 @@ func dataSourceIBMISInstances() *schema.Resource {
 				Description: "Instance resource group",
 			},
 
+			"dedicatedhost_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"dedicated_host"},
+				Description:   "Name of the dedicated host to filter the instances attached to it",
+			},
+
+			"dedicated_host": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"dedicatedhost_name"},
+				Description:   "ID of the dedicated host to filter the instances attached to it",
+			},
+
+			"placementgroup_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"placement_group"},
+				Description:   "Name of the placement group to filter the instances attached to it",
+			},
+
+			"placement_group": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"placementgroup_name"},
+				Description:   "ID of the placement group to filter the instances attached to it",
+			},
+
 			isInstances: {
 				Type:        schema.TypeList,
 				Description: "List of instances",
@@ -186,6 +214,54 @@ func dataSourceIBMISInstances() *schema.Resource {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "Instance Primary Network interface subnet",
+									},
+								},
+							},
+						},
+						"placement_target": &schema.Schema{
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "The placement restrictions for the virtual server instance.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"crn": &schema.Schema{
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The CRN for this dedicated host group.",
+									},
+									"deleted": &schema.Schema{
+										Type:        schema.TypeList,
+										Computed:    true,
+										Description: "If present, this property indicates the referenced resource has been deleted and providessome supplementary information.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"more_info": &schema.Schema{
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "Link to documentation about deleted resources.",
+												},
+											},
+										},
+									},
+									"href": &schema.Schema{
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The URL for this dedicated host group.",
+									},
+									"id": &schema.Schema{
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The unique identifier for this dedicated host group.",
+									},
+									"name": &schema.Schema{
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The unique user-defined name for this dedicated host group. If unspecified, the name will be a hyphenated list of randomly-selected words.",
+									},
+									"resource_type": &schema.Schema{
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The type of resource referenced.",
 									},
 								},
 							},
@@ -481,7 +557,7 @@ func instancesList(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	var vpcName, vpcID, vpcCrn, resourceGroup string
+	var vpcName, vpcID, vpcCrn, resourceGroup, dHostNameStr, dHostIdStr, placementGrpNameStr, placementGrpIdStr string
 
 	if vpc, ok := d.GetOk("vpc_name"); ok {
 		vpcName = vpc.(string)
@@ -499,6 +575,22 @@ func instancesList(d *schema.ResourceData, meta interface{}) error {
 		resourceGroup = rg.(string)
 	}
 
+	if dHostNameIntf, ok := d.GetOk("dedicatedhost_name"); ok {
+		dHostNameStr = dHostNameIntf.(string)
+	}
+
+	if dHostIdIntf, ok := d.GetOk("dedicated_host"); ok {
+		dHostIdStr = dHostIdIntf.(string)
+	}
+
+	if placementGrpNameIntf, ok := d.GetOk("placementgroup_name"); ok {
+		placementGrpNameStr = placementGrpNameIntf.(string)
+	}
+
+	if placementGrpIdIntf, ok := d.GetOk("placement_group"); ok {
+		placementGrpIdStr = placementGrpIdIntf.(string)
+	}
+
 	listInstancesOptions := &vpcv1.ListInstancesOptions{}
 
 	if vpcName != "" {
@@ -512,6 +604,22 @@ func instancesList(d *schema.ResourceData, meta interface{}) error {
 	}
 	if vpcCrn != "" {
 		listInstancesOptions.VPCCRN = &vpcCrn
+	}
+
+	if dHostNameStr != "" {
+		listInstancesOptions.DedicatedHostName = &dHostNameStr
+	}
+
+	if dHostIdStr != "" {
+		listInstancesOptions.DedicatedHostID = &dHostIdStr
+	}
+
+	if placementGrpNameStr != "" {
+		listInstancesOptions.PlacementGroupName = &placementGrpNameStr
+	}
+
+	if placementGrpIdStr != "" {
+		listInstancesOptions.PlacementGroupID = &placementGrpIdStr
 	}
 
 	start := ""
@@ -542,6 +650,11 @@ func instancesList(d *schema.ResourceData, meta interface{}) error {
 		l["status"] = *instance.Status
 		l["resource_group"] = *instance.ResourceGroup.ID
 		l["vpc"] = *instance.VPC.ID
+
+		if instance.PlacementTarget != nil {
+			placementTargetMap := resourceIbmIsInstanceInstancePlacementToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTarget))
+			l["placement_target"] = []map[string]interface{}{placementTargetMap}
+		}
 
 		if instance.BootVolumeAttachment != nil {
 			bootVolList := make([]map[string]interface{}, 0)

@@ -93,6 +93,7 @@ const (
 	isPlacementTargetDedicatedHost      = "dedicated_host"
 	isPlacementTargetDedicatedHostGroup = "dedicated_host_group"
 	isInstancePlacementTarget           = "placement_target"
+	isPlacementTargetPlacementGroup     = "placement_group"
 )
 
 func resourceIBMISInstance() *schema.Resource {
@@ -144,6 +145,30 @@ func resourceIBMISInstance() *schema.Resource {
 				ForceNew:    false,
 				Required:    true,
 				Description: "Profile info",
+			},
+
+			isPlacementTargetDedicatedHost: {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{isPlacementTargetDedicatedHostGroup, isPlacementTargetPlacementGroup},
+				Description:   "Unique Identifier of the Dedicated Host where the instance will be placed",
+			},
+
+			isPlacementTargetDedicatedHostGroup: {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{isPlacementTargetDedicatedHost, isPlacementTargetPlacementGroup},
+				Description:   "Unique Identifier of the Dedicated Host Group where the instance will be placed",
+			},
+
+			isPlacementTargetPlacementGroup: {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{isPlacementTargetDedicatedHost, isPlacementTargetDedicatedHostGroup},
+				Description:   "Unique Identifier of the Placement Group for restricting the placement of the instance",
 			},
 
 			isInstanceKeys: {
@@ -363,22 +388,6 @@ func resourceIBMISInstance() *schema.Resource {
 				Description: "Instance resource group",
 			},
 
-			isPlacementTargetDedicatedHost: {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{isPlacementTargetDedicatedHostGroup},
-				Description:   "Unique Identifier of the Dedicated Host where the instance will be placed",
-			},
-
-			isPlacementTargetDedicatedHostGroup: {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{isPlacementTargetDedicatedHost},
-				Description:   "Unique Identifier of the Dedicated Host Group where the instance will be placed",
-			},
-
 			isInstanceCPU: {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -513,6 +522,54 @@ func resourceIBMISInstance() *schema.Resource {
 							Type:        schema.TypeInt,
 							Computed:    true,
 							Description: "The size of the disk in GB (gigabytes).",
+						},
+					},
+				},
+			},
+			isInstancePlacementTarget: &schema.Schema{
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The placement restrictions for the virtual server instance.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"crn": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The CRN for this dedicated host group.",
+						},
+						"deleted": &schema.Schema{
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "If present, this property indicates the referenced resource has been deleted and providessome supplementary information.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"more_info": &schema.Schema{
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "Link to documentation about deleted resources.",
+									},
+								},
+							},
+						},
+						"href": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The URL for this dedicated host group.",
+						},
+						"id": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The unique identifier for this dedicated host group.",
+						},
+						"name": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The unique user-defined name for this dedicated host group. If unspecified, the name will be a hyphenated list of randomly-selected words.",
+						},
+						"resource_type": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The type of resource referenced.",
 						},
 					},
 				},
@@ -764,6 +821,14 @@ func instanceCreate(d *schema.ResourceData, meta interface{}, profile, name, vpc
 			ID: &dHostGrpIdStr,
 		}
 		instanceproto.PlacementTarget = dHostGrpPlaementTarget
+	}
+
+	if placementGroupInf, ok := d.GetOk(isPlacementTargetPlacementGroup); ok {
+		placementGrpStr := placementGroupInf.(string)
+		placementGrp := &vpcv1.InstancePlacementTargetPrototypePlacementGroupIdentity{
+			ID: &placementGrpStr,
+		}
+		instanceproto.PlacementTarget = placementGrp
 	}
 
 	if boot, ok := d.GetOk(isInstanceBootVolume); ok {
@@ -1326,6 +1391,13 @@ func instanceGet(d *schema.ResourceData, meta interface{}, id string) error {
 
 	// }
 	d.Set(isInstanceGpu, gpuList)
+
+	if instance.PlacementTarget != nil {
+		placementTargetMap := resourceIbmIsInstanceInstancePlacementToMap(*instance.PlacementTarget.(*vpcv1.InstancePlacementTarget))
+		if err = d.Set(isInstancePlacementTarget, []map[string]interface{}{placementTargetMap}); err != nil {
+			return fmt.Errorf("Error setting placement_target: %s", err)
+		}
+	}
 
 	if instance.PrimaryNetworkInterface != nil {
 		primaryNicList := make([]map[string]interface{}, 0)
@@ -2593,4 +2665,28 @@ func resourceIbmIsInstanceInstanceDiskToMap(instanceDisk vpcv1.InstanceDisk) map
 	instanceDiskMap["size"] = intValue(instanceDisk.Size)
 
 	return instanceDiskMap
+}
+
+func resourceIbmIsInstanceInstancePlacementToMap(instancePlacement vpcv1.InstancePlacementTarget) map[string]interface{} {
+	instancePlacementMap := map[string]interface{}{}
+
+	instancePlacementMap["crn"] = instancePlacement.CRN
+	if instancePlacement.Deleted != nil {
+		DeletedMap := resourceIbmIsInstanceDedicatedHostGroupReferenceDeletedToMap(*instancePlacement.Deleted)
+		instancePlacementMap["deleted"] = []map[string]interface{}{DeletedMap}
+	}
+	instancePlacementMap["href"] = instancePlacement.Href
+	instancePlacementMap["id"] = instancePlacement.ID
+	instancePlacementMap["name"] = instancePlacement.Name
+	instancePlacementMap["resource_type"] = instancePlacement.ResourceType
+
+	return instancePlacementMap
+}
+
+func resourceIbmIsInstanceDedicatedHostGroupReferenceDeletedToMap(dedicatedHostGroupReferenceDeleted vpcv1.DedicatedHostGroupReferenceDeleted) map[string]interface{} {
+	dedicatedHostGroupReferenceDeletedMap := map[string]interface{}{}
+
+	dedicatedHostGroupReferenceDeletedMap["more_info"] = dedicatedHostGroupReferenceDeleted.MoreInfo
+
+	return dedicatedHostGroupReferenceDeletedMap
 }
