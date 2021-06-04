@@ -342,8 +342,9 @@ func dataSourceIBMISInstanceTemplatesRead(d *schema.ResourceData, meta interface
 			interfaceList := make([]map[string]interface{}, 0)
 			currentPrimNic := map[string]interface{}{}
 			currentPrimNic[isInstanceTemplateNicName] = *instance.PrimaryNetworkInterface.Name
-			if instance.PrimaryNetworkInterface.PrimaryIpv4Address != nil {
-				currentPrimNic[isInstanceTemplateNicPrimaryIpv4Address] = *instance.PrimaryNetworkInterface.PrimaryIpv4Address
+			if instance.PrimaryNetworkInterface.PrimaryIP != nil {
+				primaryIP := instance.PrimaryNetworkInterface.PrimaryIP
+				currentPrimNic[isInstanceTemplateNicPrimaryIpv4Address] = *&instance.PrimaryNetworkInterface.PrimaryIP
 			}
 			subInf := instance.PrimaryNetworkInterface.Subnet
 			subnetIdentity := subInf.(*vpcv1.SubnetIdentity)

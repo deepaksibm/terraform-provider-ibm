@@ -838,7 +838,9 @@ func instanceCreate(d *schema.ResourceData, meta interface{}, profile, name, vpc
 		ipv4, _ := primnic[isInstanceNicPrimaryIpv4Address]
 		ipv4str := ipv4.(string)
 		if ipv4str != "" {
-			primnicobj.PrimaryIpv4Address = &ipv4str
+			primnicobj.PrimaryIP = &vpcv1.NetworkInterfaceIPPrototype{
+				Address: &ipv4str,
+			}
 		}
 		allowIPSpoofing, ok := primnic[isInstanceNicAllowIPSpoofing]
 		allowIPSpoofingbool := allowIPSpoofing.(bool)
@@ -881,7 +883,9 @@ func instanceCreate(d *schema.ResourceData, meta interface{}, profile, name, vpc
 			ipv4, _ := nic[isInstanceNicPrimaryIpv4Address]
 			ipv4str := ipv4.(string)
 			if ipv4str != "" {
-				nwInterface.PrimaryIpv4Address = &ipv4str
+				nwInterface.PrimaryIP = &vpcv1.NetworkInterfaceIPPrototype{
+					Address: &ipv4str,
+				}
 			}
 			allowIPSpoofing, ok := nic[isInstanceNicAllowIPSpoofing]
 			allowIPSpoofingbool := allowIPSpoofing.(bool)
@@ -1369,7 +1373,7 @@ func instanceGet(d *schema.ResourceData, meta interface{}, id string) error {
 		currentPrimNic := map[string]interface{}{}
 		currentPrimNic["id"] = *instance.PrimaryNetworkInterface.ID
 		currentPrimNic[isInstanceNicName] = *instance.PrimaryNetworkInterface.Name
-		currentPrimNic[isInstanceNicPrimaryIpv4Address] = *instance.PrimaryNetworkInterface.PrimaryIpv4Address
+		currentPrimNic[isInstanceNicPrimaryIpv4Address] = *instance.PrimaryNetworkInterface.PrimaryIP.Address
 		getnicoptions := &vpcv1.GetInstanceNetworkInterfaceOptions{
 			InstanceID: &id,
 			ID:         instance.PrimaryNetworkInterface.ID,
@@ -1399,7 +1403,7 @@ func instanceGet(d *schema.ResourceData, meta interface{}, id string) error {
 				currentNic := map[string]interface{}{}
 				currentNic["id"] = *intfc.ID
 				currentNic[isInstanceNicName] = *intfc.Name
-				currentNic[isInstanceNicPrimaryIpv4Address] = *intfc.PrimaryIpv4Address
+				currentNic[isInstanceNicPrimaryIpv4Address] = *intfc.PrimaryIP.Address
 				getnicoptions := &vpcv1.GetInstanceNetworkInterfaceOptions{
 					InstanceID: &id,
 					ID:         intfc.ID,

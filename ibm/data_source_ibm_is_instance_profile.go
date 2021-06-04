@@ -99,6 +99,15 @@ func dataSourceIBMISInstanceProfile() *schema.Resource {
 					},
 				},
 			},
+			"gpu_count": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Collection of the instance profile's disks.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{},
+				},
+			},
+
 			"disks": &schema.Schema{
 				Type:        schema.TypeList,
 				Computed:    true,
