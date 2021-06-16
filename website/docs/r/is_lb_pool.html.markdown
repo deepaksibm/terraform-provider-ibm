@@ -48,6 +48,60 @@ resource "ibm_is_lb_pool" "testacc_pool" {
 
 ```
 
+In the following example, you can create a load balancer pool with `app_cookie` session persistence:
+
+```hcl
+resource "ibm_is_lb_pool" "testacc_pool" {
+  name           = "test_pool"
+  lb             = "addfd-gg4r4-12345"
+  algorithm      = "round_robin"
+  protocol       = "https"
+  health_delay   = 60
+  health_retries = 5
+  health_timeout = 30
+  health_type    = "https"
+  proxy_protocol = "v1"
+  session_persistence_type = "app_cookie"
+  session_persistence_app_cookie_name = "cookie1"
+}
+
+```
+
+In the following example, you can create a load balancer pool with `http_cookie` session persistence:
+
+```hcl
+resource "ibm_is_lb_pool" "testacc_pool" {
+  name           = "test_pool"
+  lb             = "addfd-gg4r4-12345"
+  algorithm      = "round_robin"
+  protocol       = "https"
+  health_delay   = 60
+  health_retries = 5
+  health_timeout = 30
+  health_type    = "https"
+  proxy_protocol = "v1"
+  session_persistence_type = "http_cookie"
+}
+
+```
+
+In the following example, you can create a load balancer pool with `source_ip` session persistence:
+
+```hcl
+resource "ibm_is_lb_pool" "testacc_pool" {
+  name           = "test_pool"
+  lb             = "addfd-gg4r4-12345"
+  algorithm      = "round_robin"
+  protocol       = "https"
+  health_delay   = 60
+  health_retries = 5
+  health_timeout = 30
+  health_type    = "https"
+  proxy_protocol = "v1"
+  session_persistence_type = "source_ip"
+}
+```
+
 ## Timeouts
 
 ibm_is_lb_pool provides the following [Timeouts](https://www.terraform.io/docs/configuration/resources.html#timeouts) configuration options:
@@ -70,7 +124,8 @@ The following arguments are supported:
 * `health_type` - (Required, string) The pool protocol. Enumeration type: http, https, tcp
 * `health_monitor_url` - (Optional, string) The health check url. This option is applicable only to http type of --health-type
 * `health_monitor_port` - (Optional, int) The health check port number
-* `session_persistence_type` - (Optional, string) The session persistence type, Enumeration type: source_ip
+* `session_persistence_type` - (Optional, string) The session persistence type, Enumeration type: source_ip, app_cookie, http_cookie
+* `session_persistence_app_cookie_name` - (Optional, string) Session persistence app cookie name. This is applicable only to app_cookie type.
 * `proxy_protocol` - (Otpional, string) The PROXY protocol setting for this pool. Supported by load balancers in the application family otherwise disabled. Valid values: disabled, v1, v2.
 
 ## Attribute Reference
@@ -81,7 +136,7 @@ In addition to all arguments above, the following attributes are exported:
 * `provisioning_status` - The status of load balancer pool.
 * `pool_id`  - Id of the load balancer Pool
 * `related_crn` - The crn of the load balancer resource.
-
+* `session_persistence_app_cookie_name` - HTTP cookie name for session persistence. Only applicable for http_cookie session persistence type.
 ## Import
 
 ibm_is_lb_pool can be imported using lbID and poolID, eg
