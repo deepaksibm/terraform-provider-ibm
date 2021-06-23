@@ -71,6 +71,36 @@ In addition to the argument reference list, you can access the following attribu
     - `default` - (String) The disk interface used for attaching the disk.The enumerated values for this property are expected to expand in the future. When processing this property, check for and log unknown values. Optionally halt processing and surface the error, or bypass the resource on which the unexpected property value was encountered.
     - `type` - (String) The type for this profile field.
     - `values` - (String) The supported disk interfaces used for attaching the disk.
+- `gpu_count` - (List)  Nested `gpu_count` blocks have the following structure:
+  
+  Nested scheme for `gpu_count`
+  - `type` - (String) The type for this profile field.
+  - `value` - (Int) The value for this profile field.
+  - `default` - (Int) The default value for this profile field.
+  - `max` - (Int) The maximum value for this profile field.
+  - `min` - (Int) The minimum value for this profile field.
+  - `step` - (Int) The increment step value for this profile field.
+  - `values` - (Int) The permitted values for this profile field.
+- `gpu_memory` - (List)  Nested `gpu_memory` blocks have the following structure:
+
+  Nested scheme for `gpu_memory`
+  - `type` - (String) The type for this profile field.
+  - `value` - (Int) The value for this profile field.
+  - `default` - (Int) The default value for this profile field.
+  - `max` - (Int) The maximum value for this profile field.
+  - `min` - (Int) The minimum value for this profile field.
+  - `step` - (Int) The increment step value for this profile field.
+  - `values` - (Int) The permitted values for this profile field.
+- `gpu_manufacturer` - (List)  Nested `gpu_manufacturer` blocks have the following structure:
+  
+  Nested scheme for `gpu_manufacturer`
+  - `type` - (String) The type for this profile field.
+  - `values` - (String) The permitted values for this profile field.
+- `gpu_model` - (List)  Nested `gpu_model` blocks have the following structure:
+  
+  Nested scheme for `gpu_model`
+  - `type` - (String) The type for this profile field.
+  - `values` - (String) The permitted values for this profile field.
 - `family` - (String) The family of the virtual server instance profile.
 - `href` - (String) The URL for this virtual server instance profile.
 - `memory` - (List) Nested `memory` blocks have the following structure:
