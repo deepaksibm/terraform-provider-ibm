@@ -100,6 +100,24 @@ func dataSourceIBMISInstance() *schema.Resource {
 				Description: "Profile info",
 			},
 
+			isInstanceTotalVolumeBandwidth: {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The amount of bandwidth (in megabits per second) allocated exclusively to instance storage volumes",
+			},
+
+			isInstanceBandwidth: {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The total bandwidth (in megabits per second) shared across the instance's network interfaces and storage volumes",
+			},
+
+			isInstanceTotalNetworkBandwidth: {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The amount of bandwidth (in megabits per second) allocated exclusively to instance network interfaces.",
+			},
+
 			isInstanceTags: {
 				Type:        schema.TypeSet,
 				Computed:    true,
@@ -768,6 +786,18 @@ func instanceGetByName(d *schema.ResourceData, meta interface{}, name string) er
 			d.Set(isInstanceMemory, *instance.Memory)
 			gpuList := make([]map[string]interface{}, 0)
 			d.Set(isInstanceGpu, gpuList)
+
+			if instance.Bandwidth != nil {
+				d.Set(isInstanceBandwidth, int(*instance.Bandwidth))
+			}
+
+			if instance.TotalNetworkBandwidth != nil {
+				d.Set(isInstanceTotalNetworkBandwidth, int(*instance.TotalNetworkBandwidth))
+			}
+
+			if instance.TotalVolumeBandwidth != nil {
+				d.Set(isInstanceTotalVolumeBandwidth, int(*instance.TotalVolumeBandwidth))
+			}
 
 			if instance.Disks != nil {
 				err = d.Set(isInstanceDisks, dataSourceInstanceFlattenDisks(instance.Disks))

@@ -48,6 +48,9 @@ In addition to all argument reference list, you can access the following attribu
 		- `name` - (String) The name of the boot volume.
 		- `volume_id` - (String) The ID of the volume that is associated with the boot volume attachment.
 		- `volume_crn` - (String) The CRN of the volume that is associated with the boot volume attachment.
+	- `bandwidth` - The total bandwidth (in megabits per second) shared across the instance's network interfaces and storage volumes
+    - `total_volume_bandwidth` - The amount of bandwidth (in megabits per second) allocated exclusively to instance storage volumes
+    - `total_network_bandwidth` - The amount of bandwidth (in megabits per second) allocated exclusively to instance network interfaces.
 	- `disks` - (List) Collection of the instance's disks. Nested `disks` blocks has the following structure:
 
 	  Nested scheme for `disks`:

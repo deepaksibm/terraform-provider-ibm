@@ -218,6 +218,23 @@ func dataSourceIBMISInstances() *schema.Resource {
 							Computed:    true,
 							Description: "Instance Profile",
 						},
+						isInstanceTotalVolumeBandwidth: {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The amount of bandwidth (in megabits per second) allocated exclusively to instance storage volumes",
+						},
+
+						isInstanceBandwidth: {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The total bandwidth (in megabits per second) shared across the instance's network interfaces and storage volumes",
+						},
+
+						isInstanceTotalNetworkBandwidth: {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The amount of bandwidth (in megabits per second) allocated exclusively to instance network interfaces.",
+						},
 						"vcpu": {
 							Type:        schema.TypeList,
 							Computed:    true,
@@ -513,6 +530,18 @@ func instancesList(d *schema.ResourceData, meta interface{}) error {
 		l["status"] = *instance.Status
 		l["resource_group"] = *instance.ResourceGroup.ID
 		l["vpc"] = *instance.VPC.ID
+
+		if instance.Bandwidth != nil {
+			l[isInstanceBandwidth] = int(*instance.Bandwidth)
+		}
+
+		if instance.TotalNetworkBandwidth != nil {
+			l[isInstanceTotalNetworkBandwidth] = int(*instance.TotalNetworkBandwidth)
+		}
+
+		if instance.TotalVolumeBandwidth != nil {
+			l[isInstanceTotalVolumeBandwidth] = int(*instance.TotalVolumeBandwidth)
+		}
 
 		if instance.BootVolumeAttachment != nil {
 			bootVolList := make([]map[string]interface{}, 0)

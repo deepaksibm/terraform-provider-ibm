@@ -99,6 +99,52 @@ func dataSourceIBMISInstanceProfile() *schema.Resource {
 					},
 				},
 			},
+			"total_volume_bandwidth": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The type for this profile field.",
+						},
+						"value": &schema.Schema{
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The value for this profile field.",
+						},
+						"default": &schema.Schema{
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The default value for this profile field.",
+						},
+						"max": &schema.Schema{
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The maximum value for this profile field.",
+						},
+						"min": &schema.Schema{
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The minimum value for this profile field.",
+						},
+						"step": &schema.Schema{
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The increment step value for this profile field.",
+						},
+						"values": &schema.Schema{
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "The permitted values for this profile field.",
+							Elem: &schema.Schema{
+								Type: schema.TypeInt,
+							},
+						},
+					},
+				},
+			},
 			"disks": &schema.Schema{
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -441,6 +487,14 @@ func instanceProfileGet(d *schema.ResourceData, meta interface{}, name string) e
 			return err
 		}
 	}
+
+	if profile.Bandwidth != nil {
+		err = d.Set("total_volume_bandwidth", dataSourceInstanceProfileFlattenTotalVolumeBandwidth(*profile.TotalVolumeBandwidth.(*vpcv1.InstanceProfileVolumeBandwidth)))
+		if err != nil {
+			return err
+		}
+	}
+
 	if profile.Disks != nil {
 		err = d.Set("disks", dataSourceInstanceProfileFlattenDisks(profile.Disks))
 		if err != nil {
@@ -736,4 +790,40 @@ func dataSourceInstanceProfileDisksSupportedInterfaceTypesToMap(supportedInterfa
 	}
 
 	return supportedInterfaceTypesMap
+}
+
+func dataSourceInstanceProfileFlattenTotalVolumeBandwidth(result vpcv1.InstanceProfileVolumeBandwidth) (finalList []map[string]interface{}) {
+	finalList = []map[string]interface{}{}
+	finalMap := dataSourceInstanceProfileTotalVolumeBandwidthToMap(result)
+	finalList = append(finalList, finalMap)
+
+	return finalList
+}
+
+func dataSourceInstanceProfileTotalVolumeBandwidthToMap(bandwidthItem vpcv1.InstanceProfileVolumeBandwidth) (bandwidthMap map[string]interface{}) {
+	bandwidthMap = map[string]interface{}{}
+
+	if bandwidthItem.Type != nil {
+		bandwidthMap["type"] = bandwidthItem.Type
+	}
+	if bandwidthItem.Value != nil {
+		bandwidthMap["value"] = bandwidthItem.Value
+	}
+	if bandwidthItem.Default != nil {
+		bandwidthMap["default"] = bandwidthItem.Default
+	}
+	if bandwidthItem.Max != nil {
+		bandwidthMap["max"] = bandwidthItem.Max
+	}
+	if bandwidthItem.Min != nil {
+		bandwidthMap["min"] = bandwidthItem.Min
+	}
+	if bandwidthItem.Step != nil {
+		bandwidthMap["step"] = bandwidthItem.Step
+	}
+	if bandwidthItem.Values != nil {
+		bandwidthMap["values"] = bandwidthItem.Values
+	}
+
+	return bandwidthMap
 }

@@ -69,6 +69,14 @@ You can access the following attribute references after your data source is crea
     - `type` - (String) The type for this profile field.
     - `value` - (String) The value for this profile field.
     - `values` - (String) The permitted values for this profile field.
+  - `total_volume_bandwidth`  Nested `bandwidth` blocks have the following structure:
+    - `type` - The type for this profile field.
+    - `value` - The value for this profile field.
+    - `default` - The default value for this profile field.
+    - `max` - The maximum value for this profile field.
+    - `min` - The minimum value for this profile field.
+    - `step` - The increment step value for this profile field.
+    - `values` - The permitted values for this profile field.
   - `href` - (String) The URL for this virtual server instance profile.
   - `memory` - (List) Nested `memory` blocks have the following structure:
     

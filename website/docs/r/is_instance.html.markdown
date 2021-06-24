@@ -235,6 +235,7 @@ Review the argument references that you can specify for your resource.
   Nested scheme for `boot_volume`:
   - `name` - (Optional, String) The name of the boot volume.
   - `encryption` - (Optional, String) The type of encryption to use for the boot volume.
+- `total_volume_bandwidth` - (Optional, int) The amount of bandwidth (in megabits per second) allocated exclusively to instance storage volumes
 - `dedicated_host` - (Optional, Forces new resource, String) The placement restrictions to use the virtual server instance. Unique ID of the dedicated host where the instance id placed.
 - `dedicated_host_group` - (Optional, Forces new resource, String) The placement restrictions to use for the virtual server instance. Unique ID of the dedicated host group where the instance is placed.
 - `force_recovery_time` - (Optional, Integer) Define timeout (in minutes), to force the `is_instance` to recover from a perpetual "starting" state, during provisioning. And to force the is_instance to recover from a perpetual "stopping" state, during removal of user access. **Note** The force_recovery_time is used to retry multiple times until timeout.
@@ -278,6 +279,9 @@ In addition to all argument reference list, you can access the following attribu
   - `name` - (String) The name of the boot volume.
   - `profile` - (String) The profile of the volume.
   - `size`- (Integer) The capacity of the volume in gigabytes.
+- `bandwidth` - The total bandwidth (in megabits per second) shared across the instance's network interfaces and storage volumes
+- `total_volume_bandwidth` - The amount of bandwidth (in megabits per second) allocated exclusively to instance storage volumes
+- `total_network_bandwidth` - The amount of bandwidth (in megabits per second) allocated exclusively to instance network interfaces.
 - `disks` - (List of Strings) The collection of the instance's disks. Nested `disks` blocks have the following structure:
 
   Nested scheme for `disks`:

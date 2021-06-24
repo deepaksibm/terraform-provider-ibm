@@ -35,6 +35,7 @@ You can access the following attribute references after your data source is crea
 	- `image` - (String) The ID of the image to create the template.
 	- `keys` - (String) List of SSH key IDs used to allow log in user to the instances.
 	- `name` - (String) The name of the instance template.
+	- `total_volume_bandwidth` - The amount of bandwidth (in megabits per second) allocated exclusively to instance storage volumes
 	- `network_interfaces` - (List) A nested block describes the network interfaces for the template.
 
 	  Nested scheme for `network_interfaces`:
